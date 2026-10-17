@@ -556,7 +556,7 @@ function step2(){
       '<textarea id="pt-'+t+'" rows="5" placeholder="홍길동 25&#10;김철수 23&#10;이영희 20"></textarea>'+
       '<button type="button" class="btn sm gold" data-act="paste" data-t="'+t+'">출전자 명단에 적용</button></details>'+
     '<div class="plist"><div class="prow phead" aria-hidden="true"><span></span><span>회원명</span><span>핸디</span><span>80%</span></div>'+S.teams[t].players.map(function(p,i){return '<div class="prow"><span class="pno">'+(i+1)+'</span>'+
-      '<input type="text" id="pn-'+t+'-'+i+'" class="'+(fieldBad(v,t+'n'+i)?'err':'')+'" data-f="name" data-t="'+t+'" data-i="'+i+'" value="'+esc(p.name)+'" placeholder="이름" maxlength="12" autocomplete="off" aria-label="'+t+'팀 '+(i+1)+'번 이름">'+
+      '<input type="text" id="pn-'+t+'-'+i+'" class="'+(fieldBad(v,t+'n'+i)?'err':'')+'" data-f="name" data-t="'+t+'" data-i="'+i+'" value="'+esc(p.name)+'" placeholder="이름" maxlength="24" autocomplete="off" aria-label="'+t+'팀 '+(i+1)+'번 이름">'+
       '<div class="sc"><input type="text" id="ps-'+t+'-'+i+'" class="'+(fieldBad(v,t+'s'+i)?'err':'')+'" data-f="score" data-t="'+t+'" data-i="'+i+'" value="'+esc(p.score)+'" placeholder="점수" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="'+t+'팀 '+(i+1)+'번 점수"><span>점</span></div>'+
       '<span class="p80" aria-label="80% 점수"><b id="p80-'+t+'-'+i+'">'+p80(p.score)+'</b></span></div>'}).join('')+'</div>'+
   '</section>'}).join('')+'<div id="vbox">'+vbox(v)+'</div>';
@@ -680,8 +680,16 @@ function renderBar(){
 }
 function tblNote(){return S.tablesAuto?'':'<button type="button" class="tlink" data-act="tblAuto">출전자 수('+cnt('A')+'대)로 맞추기</button>'}
 function syncTables(){if(!S.tablesAuto)return;var n=Math.min(MAXP,Math.max(1,cnt('A')));if(S.tables!==n){S.tables=n;if(S.matches)S.matches=schedule(S.matches)}}
+/* 상대 팀 빈 이름 칸을 '팀명-01' 형태로 채움. 자동 이름은 순서대로 다시 번호를 매기고 팀 이름 변경을 따라감.
+   점수가 빈 자동 선수에는 우리 팀 점수 중 하나를 골라 ±2점 흔든 임의 점수를 넣음(우리 팀 점수가 없으면 25±3) */
+function autoB(){var base=tn('B'),old=S.autoBase||base;
+  var as=S.teams.A.players.map(sc).filter(function(v){return v>0}),rnd=function(n){return Math.floor(Math.random()*(2*n+1))-n};
+  var guess=function(){return String(Math.min(99,Math.max(1,as.length?as[Math.floor(Math.random()*as.length)]+rnd(2):25+rnd(3))))};
+  var re=function(b){return new RegExp('^'+b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'-\\d{2}$')},ro=re(old),rb=re(base);
+  S.teams.B.players.forEach(function(p,i){var n=p.name.trim();if(!n||ro.test(n)||rb.test(n)){p.name=base+'-'+String(i+1).padStart(2,'0');if(!String(p.score).trim())p.score=guess()}});
+  S.autoBase=base}
 function render(scrollTop){
-  syncTables();
+  autoB();syncTables();
   if(S.step>1&&!canGo(S.step))S.step=S.step===4&&validate().ok?3:2;
   renderRail();
   $('#main').innerHTML=VIEW==='history'?historyView():[null,step1,step2,step3,step4][S.step]();
@@ -970,29 +978,29 @@ var act={
   reset:function(){modal({title:'처음부터 다시 시작할까요?',html:'<p>팀 이름, 선수 명단, 대진표와 승패 입력을 모두 지웁니다. 되돌릴 수 없습니다.</p>',ok:'초기화',danger:true,
     onOk:function(){S=defaults();tried=false;picked=null;VIEW='main';try{localStorage.removeItem(KEY)}catch(e){}render(true);toast('초기화했습니다')}})}
 };
-/* BGM: Web Audio 합성 테크노 루프(D단조 132BPM, 8마디). 매번 켜짐으로 시작, 자동재생이 막히면 첫 사용자 입력 때 시작 */
+/* BGM: Web Audio 합성 스릴러 루프(C단조 92BPM, 8마디). 매번 켜짐으로 시작, 자동재생이 막히면 첫 사용자 입력 때 시작 */
 var BGM=(function(){
   var AC=window.AudioContext||window.webkitAudioContext;
-  var ctx=null,out=null,noise=null,timer=null,next=0,step=0,on=true,SPB=60/132/4;
-  var ROOT=[38,38,38,38,34,34,36,36],
-      ACID=[0,0,12,0,0,3,0,12,0,0,10,0,7,0,12,3],
-      ARP=[0,7,12,15,12,7,3,7,0,7,12,19,15,12,7,3];
+  var ctx=null,out=null,noise=null,timer=null,next=0,step=0,on=true,SPB=60/92/4;
+  var ROOT=[48,48,44,44,48,48,43,43],
+      OST=[0,0,3,0,2,0,-1,0];
   function hz(m){return 440*Math.pow(2,(m-69)/12)}
   function env(t,a,peak,dur){var g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);g.connect(out);return g}
-  function osc(type,f,t,dur,vol,cut,q,sweep){var o=ctx.createOscillator(),lp=ctx.createBiquadFilter();o.type=type;o.frequency.setValueAtTime(f,t);
+  function osc(type,f,t,dur,vol,cut,q,sweep,a){var o=ctx.createOscillator(),lp=ctx.createBiquadFilter();o.type=type;o.frequency.setValueAtTime(f,t);
     lp.type='lowpass';lp.Q.value=q||1;lp.frequency.setValueAtTime(sweep||cut,t);if(sweep)lp.frequency.exponentialRampToValueAtTime(cut,t+dur);
-    o.connect(lp);lp.connect(env(t,0.004,vol,dur));o.start(t);o.stop(t+dur+0.05)}
-  function kick(t){var o=ctx.createOscillator();o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(42,t+0.12);o.connect(env(t,0.002,1,0.32));o.start(t);o.stop(t+0.36)}
+    o.connect(lp);lp.connect(env(t,a||0.004,vol,dur));o.start(t);o.stop(t+dur+0.05)}
+  function thump(t,vol){var o=ctx.createOscillator();o.frequency.setValueAtTime(95,t);o.frequency.exponentialRampToValueAtTime(34,t+0.16);o.connect(env(t,0.003,vol,0.3));o.start(t);o.stop(t+0.34)}
   function hiss(t,dur,vol,type,f0,f1){var s=ctx.createBufferSource(),f=ctx.createBiquadFilter();s.buffer=noise;f.type=type;f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);s.connect(f);f.connect(env(t,f1?dur*0.9:0.002,vol,dur));s.start(t);s.stop(t+dur+0.05)}
   function play(i,t){
-    var bar=Math.floor(i/16)%8,s=i%16,r=ROOT[bar],late=bar>=4,open=600+2400*((bar%4)*16+s)/63;
-    if(s%4===0)kick(t);
-    if(s===4||s===12){hiss(t,0.14,0.35,'bandpass',1600);hiss(t+0.012,0.1,0.25,'bandpass',1100)}
-    hiss(t,s%4===2?0.12:0.03,s%4===2?0.22:0.07,'highpass',8000);
-    if(ACID[s]!=null&&(s%4!==1))osc('sawtooth',hz(r+ACID[s]),t,SPB*0.95,s%4===0?0.32:0.22,180,14,open*(s%4===0?1.4:1));
-    if(late)osc('square',hz(r+24+ARP[s]),t,SPB*0.7,0.07,3200);
-    if(bar===3&&s>=12)osc('square',hz(r+36+(s-12)*3),t,SPB*0.5,0.06,5000);
-    if(bar===7&&s===0)hiss(t,SPB*16,0.3,'bandpass',400,8000);
+    var bar=Math.floor(i/16)%8,s=i%16,r=ROOT[bar],BAR=SPB*16;
+    if(s===0||s===8){thump(t,1);thump(t+SPB*0.9,0.6)}
+    if(s%4===0)hiss(t,0.025,0.16,s%8?'bandpass':'highpass',s%8?2600:6000);
+    if(s%2===0){var m=r+12+OST[s/2];osc('sawtooth',hz(m),t,SPB*1.3,0.15,900,2,2600);osc('sawtooth',hz(m-12),t,SPB*1.3,0.08,600,1,1500)}
+    if(s===0){osc('sawtooth',hz(r-24),t,BAR,0.14,280,1,0,0.8);osc('sawtooth',hz(r-17),t,BAR,0.08,280,1,0,0.8)}
+    if(s===0&&bar%4===0)[r-24,r-17,r-12].forEach(function(m){osc('sawtooth',hz(m),t,BAR*0.85,0.2,1400,3,140,0.25)});
+    if(bar>=4)osc('triangle',hz(bar>=6?80:79),t,SPB*0.8,0.05,6000);
+    if(bar===7&&s===0)hiss(t,BAR,0.28,'bandpass',300,6000);
+    if(bar===7&&s===12)thump(t,1);
   }
   function tick(){while(next<ctx.currentTime+0.12){play(step++,next);next+=SPB}}
   function run(){if(!on||!ctx||ctx.state!=='running'||timer)return;next=ctx.currentTime+0.05;timer=setInterval(tick,25);ui();splash(false)}
