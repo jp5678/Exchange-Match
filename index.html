@@ -66,6 +66,8 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .tag{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;font-family:var(--f-num);font-size:12px;font-weight:700}
 .tag.tA{background:var(--gold);color:var(--gold-ink)}
 .tag.tB{background:var(--felt-hi);color:var(--felt-ink)}
+.fld input.tnA{color:var(--gold);font-weight:700;border-color:rgba(212,175,55,.45)}
+.fld input.tnB{color:#3dbb93;font-weight:700;border-color:rgba(61,187,147,.45)} /* --felt-hi 그대로는 대비 2.4:1이라 같은 계열의 밝은 톤 사용 */
 
 /* Buttons */
 .btn{min-height:52px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface-2);padding:0 18px;font-size:16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s,background .2s}
@@ -152,6 +154,7 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .chip.grp.lo{color:var(--felt-ink);border-color:var(--felt-hi)}
 .chip.grp.x{color:var(--danger);border-color:rgba(248,113,113,.45)}
 .tbtns{display:flex;gap:6px}
+.tbtns [data-act=bgm][aria-pressed=true]{color:var(--gold-hi);border-color:var(--gold)}
 .htab{display:grid;gap:4px;font-size:14px}
 .hrow{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(36px,.6fr));gap:6px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--bg)}
 .htab.mem .hrow{grid-template-columns:minmax(64px,1.3fr) repeat(6,minmax(34px,.6fr))}
@@ -288,12 +291,12 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
     </div>
     <div class="topr">
       <span class="store" id="store">자동 저장됨</span>
-      <div class="tbtns"><button type="button" class="btn xs ghost" data-act="history">이력</button><button type="button" class="btn xs danger" data-act="reset">초기화</button></div>
+      <div class="tbtns"><button type="button" class="btn xs ghost" data-act="history">이력</button><button type="button" class="btn xs ghost" data-act="bgm" id="bgmBtn" aria-pressed="false">♪ BGM</button><button type="button" class="btn xs danger" data-act="reset">초기화</button></div>
     </div>
   </header>
   <nav class="rail" id="rail" aria-label="진행 단계"></nav>
   <main id="main" class="app" style="gap:16px"></main>
-  <p class="foot no-print">점수는 각 선수의 기준 득점(핸디)입니다. 입력값은 이 기기 브라우저에만 저장됩니다.</p>
+  <p class="foot no-print">점수는 각 선수의 기준 득점(핸디)입니다. 입력값은 프로그램을 다시 열면 초기화됩니다(교류전 이력은 유지).</p>
 </div>
 
 <div class="bar" id="bar"><div class="in" id="barIn"></div></div>
@@ -314,6 +317,7 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 (function(){
 'use strict';
 var KEY='cushion-xmatch-v2';
+var RESET_ON_START=true; /* 시작할 때마다 진행 상태를 비움. 이력(LKEY/DB)은 건드리지 않음 */
 var MAXP=20;
 var HANDI={'강병호':'23','정종필':'24','정덕영':'25','고재건':'30','선명':'25','김영록':'23','최충광':'28','방성두':'30','최충엽':'26','황주안':'25','김재하':'28','현광렬':'22','오승준':'28','선명관':'32','한용간':'24'};
 var MEMBERS=Object.keys(HANDI);
@@ -346,7 +350,8 @@ function load(){
   if(d.teams.B.name==='상대팀'||d.teams.B.name==='국제(KUKJE)')d.teams.B.name='국제(Team. KUKJE)';
   return d;
 }
-var S=load();
+function fresh(){try{localStorage.removeItem(KEY)}catch(e){storageOK=false}return defaults()}
+var S=RESET_ON_START?fresh():load();
 var saveT=null;
 function save(){clearTimeout(saveT);saveT=setTimeout(function(){
   try{localStorage.setItem(KEY,JSON.stringify(S));storageOK=true}catch(e){storageOK=false}
@@ -522,7 +527,7 @@ function step1(){
   return '<section class="panel"><h2 class="h">팀 설정</h2>'+
   '<label class="fld"><span>경기 날짜</span><input id="date" type="date" value="'+esc(S.date)+'"></label>'+
   '<div class="teams">'+['A','B'].map(function(t){return '<div class="tcard"><div class="tlabel"><span class="tag t'+t+'">'+t+'</span>'+(t==='A'?'우리 팀':'상대 팀')+'</div>'+
-    '<label class="fld"><span>팀 이름</span><input type="text" id="tname-'+t+'" data-tname="'+t+'" value="'+esc(S.teams[t].name)+'" maxlength="20" placeholder="'+(t==='A'?'더 브릿지(The Bridge)':'국제(Team. KUKJE)')+'"></label></div>'}).join('')+'</div></section>';
+    '<label class="fld"><span>팀 이름</span><input type="text" class="tn'+t+'" id="tname-'+t+'" data-tname="'+t+'" value="'+esc(S.teams[t].name)+'" maxlength="20" placeholder="'+(t==='A'?'더 브릿지(The Bridge)':'국제(Team. KUKJE)')+'"></label></div>'}).join('')+'</div></section>';
 }
 function step2(){
   var v=validate();
@@ -948,6 +953,42 @@ var act={
   reset:function(){modal({title:'처음부터 다시 시작할까요?',html:'<p>팀 이름, 선수 명단, 대진표와 승패 입력을 모두 지웁니다. 되돌릴 수 없습니다.</p>',ok:'초기화',danger:true,
     onOk:function(){S=defaults();tried=false;picked=null;VIEW='main';try{localStorage.removeItem(KEY)}catch(e){}render(true);toast('초기화했습니다')}})}
 };
+/* BGM: Web Audio 합성 스릴러 루프(D단조 128BPM, 8마디). 자동재생이 막히면 첫 사용자 입력 때 시작 */
+var BGM=(function(){
+  var PKEY='cushion-xmatch-bgm',AC=window.AudioContext||window.webkitAudioContext;
+  var ctx=null,out=null,noise=null,timer=null,next=0,step=0,on=true,SPB=60/128/4;
+  try{on=localStorage.getItem(PKEY)!=='0'}catch(e){}
+  var ROOT=[38,34,31,33,38,34,31,33],
+      PAD=[[50,53,57],[46,50,53],[43,46,50],[45,49,52]],
+      LEAD=[74,75,74,0,74,75,77,0,74,75,74,0,73,74,73,0];
+  function hz(m){return 440*Math.pow(2,(m-69)/12)}
+  function env(t,a,peak,dur){var g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);g.connect(out);return g}
+  function osc(type,f,t,dur,vol,cut,a){var o=ctx.createOscillator(),lp=ctx.createBiquadFilter();o.type=type;o.frequency.setValueAtTime(f,t);lp.type='lowpass';lp.frequency.setValueAtTime(cut,t);o.connect(lp);lp.connect(env(t,a||0.005,vol,dur));o.start(t);o.stop(t+dur+0.05);return o}
+  function kick(t){var o=ctx.createOscillator();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+0.18);o.connect(env(t,0.003,0.9,0.3));o.start(t);o.stop(t+0.35)}
+  function hiss(t,dur,vol,f0,f1){var s=ctx.createBufferSource(),f=ctx.createBiquadFilter();s.buffer=noise;f.type=f1?'bandpass':'highpass';f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);s.connect(f);f.connect(env(t,f1?dur*0.9:0.002,vol,dur));s.start(t);s.stop(t+dur+0.05)}
+  function play(i,t){
+    var bar=Math.floor(i/16)%8,s=i%16,r=ROOT[bar],late=bar>=4;
+    if(s%2===0)osc('sawtooth',hz(s===14?r+12:r),t,SPB*1.6,0.22,late?900:600);
+    if(s===0||s===8||(late&&(s===4||s===12))||(bar===7&&s>=12))kick(t);
+    hiss(t,0.04,s%4===2?0.12:0.05,7000);
+    if(s===0)PAD[bar%4].forEach(function(m){osc('sawtooth',hz(m),t,SPB*16,0.035,1400,0.6).detune.setValueAtTime(m%2?7:-7,t)});
+    if(late&&LEAD[s])osc('square',hz(LEAD[s]),t,SPB*0.9,0.05,2500);
+    if(bar===7&&s===0)hiss(t,SPB*16,0.18,300,6000);
+  }
+  function tick(){while(next<ctx.currentTime+0.12){play(step++,next);next+=SPB}}
+  function run(){if(!on||!ctx||ctx.state!=='running'||timer)return;next=ctx.currentTime+0.05;timer=setInterval(tick,25);ui()}
+  function halt(){clearInterval(timer);timer=null;if(ctx)ctx.suspend();ui()}
+  function start(){if(!on||!AC)return;
+    if(!ctx){ctx=new AC();out=ctx.createGain();out.gain.value=0.35;out.connect(ctx.destination);
+      noise=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);var d=noise.getChannelData(0);for(var k=0;k<d.length;k++)d[k]=Math.random()*2-1}
+    var p=ctx.resume();if(p&&p.then)p.then(run,function(){});else run()}
+  function ui(){var b=document.getElementById('bgmBtn');if(!b)return;var playing=!!timer;b.setAttribute('aria-pressed',String(playing));b.textContent=playing?'♪ BGM 끄기':'♪ BGM 켜기';b.hidden=!AC}
+  function unlock(e){if(!timer&&!(e.target.closest&&e.target.closest('#bgmBtn')))start()}
+  ['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,unlock,{capture:true,passive:true})});
+  document.addEventListener('visibilitychange',function(){if(document.hidden){if(timer)halt()}else start()});
+  return {start:start,ui:ui,toggle:function(){if(on&&!timer){start();return}on=!on;try{localStorage.setItem(PKEY,on?'1':'0')}catch(e){}if(on)start();else halt()}};
+})();
+act.bgm=function(){BGM.toggle()};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-act]');if(!b||b.disabled)return;var f=act[b.dataset.act];if(f)f(b)});
 document.addEventListener('input',function(e){var el=e.target;
   if(el.dataset.f){var p=P(el.dataset.t,+el.dataset.i),f=el.dataset.f,v=el.value;
@@ -963,6 +1004,7 @@ document.addEventListener('input',function(e){var el=e.target;
 document.addEventListener('change',function(e){var el=e.target;if(el.dataset.ms){ensureManual();S.manual[+el.dataset.i][el.dataset.ms]=el.value;invalidate();render()}});
 
 render();
+BGM.ui();BGM.start();
 })();
 </script>
 
