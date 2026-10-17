@@ -556,7 +556,7 @@ function step2(){
       '<textarea id="pt-'+t+'" rows="5" placeholder="홍길동 25&#10;김철수 23&#10;이영희 20"></textarea>'+
       '<button type="button" class="btn sm gold" data-act="paste" data-t="'+t+'">출전자 명단에 적용</button></details>'+
     '<div class="plist"><div class="prow phead" aria-hidden="true"><span></span><span>회원명</span><span>핸디</span><span>80%</span></div>'+S.teams[t].players.map(function(p,i){return '<div class="prow"><span class="pno">'+(i+1)+'</span>'+
-      '<input type="text" id="pn-'+t+'-'+i+'" class="'+(fieldBad(v,t+'n'+i)?'err':'')+'" data-f="name" data-t="'+t+'" data-i="'+i+'" value="'+esc(p.name)+'" placeholder="이름" maxlength="12" autocomplete="off" aria-label="'+t+'팀 '+(i+1)+'번 이름">'+
+      '<input type="text" id="pn-'+t+'-'+i+'" class="'+(fieldBad(v,t+'n'+i)?'err':'')+'" data-f="name" data-t="'+t+'" data-i="'+i+'" value="'+esc(p.name)+'" placeholder="이름" maxlength="24" autocomplete="off" aria-label="'+t+'팀 '+(i+1)+'번 이름">'+
       '<div class="sc"><input type="text" id="ps-'+t+'-'+i+'" class="'+(fieldBad(v,t+'s'+i)?'err':'')+'" data-f="score" data-t="'+t+'" data-i="'+i+'" value="'+esc(p.score)+'" placeholder="점수" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="'+t+'팀 '+(i+1)+'번 점수"><span>점</span></div>'+
       '<span class="p80" aria-label="80% 점수"><b id="p80-'+t+'-'+i+'">'+p80(p.score)+'</b></span></div>'}).join('')+'</div>'+
   '</section>'}).join('')+'<div id="vbox">'+vbox(v)+'</div>';
@@ -680,10 +680,13 @@ function renderBar(){
 }
 function tblNote(){return S.tablesAuto?'':'<button type="button" class="tlink" data-act="tblAuto">출전자 수('+cnt('A')+'대)로 맞추기</button>'}
 function syncTables(){if(!S.tablesAuto)return;var n=Math.min(MAXP,Math.max(1,cnt('A')));if(S.tables!==n){S.tables=n;if(S.matches)S.matches=schedule(S.matches)}}
-/* 상대 팀 빈 이름 칸을 '팀명-01' 형태로 채움. 자동 이름은 순서대로 다시 번호를 매기고 팀 이름 변경을 따라감 */
-function autoB(){var base=S.teams.B.name.replace(/\s*\([^)]*\)\s*/g,'').trim()||tn('B'),old=S.autoBase||base;
+/* 상대 팀 빈 이름 칸을 '팀명-01' 형태로 채움. 자동 이름은 순서대로 다시 번호를 매기고 팀 이름 변경을 따라감.
+   점수가 빈 자동 선수에는 우리 팀 점수 중 하나를 골라 ±2점 흔든 임의 점수를 넣음(우리 팀 점수가 없으면 25±3) */
+function autoB(){var base=tn('B'),old=S.autoBase||base;
+  var as=S.teams.A.players.map(sc).filter(function(v){return v>0}),rnd=function(n){return Math.floor(Math.random()*(2*n+1))-n};
+  var guess=function(){return String(Math.min(99,Math.max(1,as.length?as[Math.floor(Math.random()*as.length)]+rnd(2):25+rnd(3))))};
   var re=function(b){return new RegExp('^'+b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'-\\d{2}$')},ro=re(old),rb=re(base);
-  S.teams.B.players.forEach(function(p,i){var n=p.name.trim();if(!n||ro.test(n)||rb.test(n))p.name=base+'-'+String(i+1).padStart(2,'0')});
+  S.teams.B.players.forEach(function(p,i){var n=p.name.trim();if(!n||ro.test(n)||rb.test(n)){p.name=base+'-'+String(i+1).padStart(2,'0');if(!String(p.score).trim())p.score=guess()}});
   S.autoBase=base}
 function render(scrollTop){
   autoB();syncTables();
