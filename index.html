@@ -157,6 +157,9 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .chip.grp.x{color:var(--danger);border-color:rgba(248,113,113,.45)}
 .tbtns{display:flex;gap:6px}
 .tbtns [data-act=bgm][aria-pressed=true]{color:var(--gold-hi);border-color:var(--gold)}
+.tbtns [data-act=bgm].pending{animation:bgmPulse 1.2s ease-in-out infinite} /* 켜짐이지만 첫 탭 전이라 아직 재생 전 */
+@keyframes bgmPulse{0%,100%{box-shadow:0 0 0 0 rgba(212,175,55,0)}50%{box-shadow:0 0 0 5px rgba(212,175,55,.45);background:rgba(212,175,55,.18)}}
+@media (prefers-reduced-motion:reduce){.tbtns [data-act=bgm].pending{animation:none;background:rgba(212,175,55,.18)}}
 .htab{display:grid;gap:4px;font-size:14px}
 .hrow{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(36px,.6fr));gap:6px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--bg)}
 .htab.mem .hrow{grid-template-columns:minmax(64px,1.3fr) repeat(6,minmax(34px,.6fr))}
@@ -336,7 +339,7 @@ function defaults(){
   return {step:1,sample:false,date:today(),scores:Object.assign({},HANDI),
     teams:{A:{name:'더 브릿지(The Bridge)',players:MEMBERS.map(function(n){return {name:n,score:HANDI[n]}})},
            B:{name:'국제(Team. KUKJE)',players:blank(MEMBERS.length)}},
-    mode:'random',mismatch:'bye',tables:MEMBERS.length,tablesAuto:true,warn:5,cut:25,manual:[],matches:null};
+    mode:'random',balance:'on',mismatch:'bye',tables:MEMBERS.length,tablesAuto:true,warn:5,cut:25,manual:[],matches:null};
 }
 function load(){
   var d=defaults();
@@ -433,11 +436,19 @@ function refreshValidation(){
 
 /* matching */
 function limit(t){var o=t==='A'?'B':'A',n=cnt(t),m=cnt(o);if(n>=m)return 1;return S.mismatch==='bye'?1:Math.ceil(m/n)}
+/* 무작위 배정에서 점수 차가 경고 기준 이상인 대결을 줄임: 무작위 자리 교환을 반복하며 비용이 나빠지지 않으면 받아들임(같은 비용도 받아들여 무작위성 유지) */
+function balance(ra,rb,n){
+  function cost(){var c=0;for(var i=0;i<n;i++){var d=Math.abs(sc(P('A',ra[i]))-sc(P('B',rb[i])));if(d>=S.warn)c+=1000+d}return c}
+  var cur=cost();
+  for(var k=0;k<2000&&cur>0;k++){var a=Math.random()<0.5?ra:rb,i=Math.floor(Math.random()*a.length),j=Math.floor(Math.random()*a.length);if(i===j)continue;
+    var x=a[i];a[i]=a[j];a[j]=x;var c=cost();if(c<=cur)cur=c;else{a[j]=a[i];a[i]=x}}
+}
 function buildAuto(){
   var bigT=cnt('A')>=cnt('B')?'A':'B',smT=bigT==='A'?'B':'A',out=[],rest=[];
   function pair(a,b,g){return {A:a,B:b,winner:null,extra:null,grp:g||null}}
   if(S.mode==='random'){
     var ra=shuffle(idx('A')),rb=shuffle(idx('B')),n=Math.min(ra.length,rb.length);
+    if(S.balance!=='off')balance(ra,rb,n);
     for(var i=0;i<n;i++)out.push(pair(ra[i],rb[i]));
     rest=(bigT==='A'?ra:rb).slice(n);
   }else{
@@ -560,6 +571,9 @@ function step3(){
     opt('mode','random','무작위 매칭','선수를 섞어 짝짓습니다. 대진표 화면에서 다시 섞을 수 있습니다.')+
     opt('mode','rank','점수 그룹 매칭 ('+S.cut+'점 이하 / '+(S.cut+1)+'점 이상)','양 팀을 두 그룹으로 나눠 같은 그룹끼리 점수 순위대로 붙입니다. 같은 그룹에서 짝이 없는 선수는 상대 그룹과 섞지 않고 부전승(팀 1승)으로 처리합니다. 동점자 순서는 무작위입니다.')+
     opt('mode','manual','수동 매칭','짝을 직접 고릅니다. 이미 고른 선수는 다른 경기에서 고를 수 없습니다.')+'</div></section>';
+  if(S.mode==='random')h+='<section class="panel"><h2 class="h">점수 차 조정</h2><div class="opts">'+
+    opt('balance','on','점수 차 큰 대결 피하기','무작위로 섞되 점수 차 '+S.warn+'점 이상인 대결이 최대한 나오지 않게 짝을 바꿉니다. 피할 수 없으면 가장 적게 남깁니다.')+
+    opt('balance','off','완전 무작위','점수와 상관없이 섞습니다.')+'</div></section>';
   if(mm&&S.mode!=='rank')h+='<section class="panel"><h2 class="h">인원이 다릅니다 <small>'+tnh('A')+' '+nA+' : '+nB+' '+tnh('B')+'</small></h2><div class="opts">'+
     opt('mismatch','bye','남는 선수는 부전승','짝이 없는 '+diff+'명은 부전승으로 팀 1승씩 인정합니다.')+
     opt('mismatch','double-random','2경기 · 무작위로 지정',tnh(smT)+' 선수 중 무작위로 '+Math.min(diff,smN)+'명이 한 경기 더 합니다.'+(diff>smN?' (인원 차가 커서 일부는 3경기 이상)':''))+
@@ -1009,7 +1023,7 @@ var BGM=(function(){
       out=ctx.createGain();out.gain.value=0.9;out.connect(comp);
       noise=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);var d=noise.getChannelData(0);for(var k=0;k<d.length;k++)d[k]=Math.random()*2-1}
     var p=ctx.resume();if(p&&p.then)p.then(run,function(){});else run();ui()}
-  function ui(){var b=document.getElementById('bgmBtn');if(!b)return;b.setAttribute('aria-pressed',String(on));b.textContent=on?'♪ 켜짐':'♪ 꺼짐';b.hidden=!AC}
+  function ui(){var b=document.getElementById('bgmBtn');if(!b)return;b.setAttribute('aria-pressed',String(on));b.textContent=on?'♪ 켜짐':'♪ 꺼짐';var wait=on&&!timer;b.classList.toggle('pending',wait);b.title=wait?'화면을 탭하면 배경음악이 재생됩니다':'';b.hidden=!AC}
   function unlock(e){if(!timer&&!(e.target.closest&&e.target.closest('#bgmBtn')))start()}
   ['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,unlock,{capture:true,passive:true})});
   document.addEventListener('visibilitychange',function(){if(document.hidden){if(timer)halt()}else start()});
