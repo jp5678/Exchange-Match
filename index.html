@@ -66,6 +66,8 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .tag{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;font-family:var(--f-num);font-size:12px;font-weight:700}
 .tag.tA{background:var(--gold);color:var(--gold-ink)}
 .tag.tB{background:var(--felt-hi);color:var(--felt-ink)}
+.fld input.tnA{color:var(--gold);font-weight:700;border-color:rgba(212,175,55,.45)}
+.fld input.tnB{color:#3dbb93;font-weight:700;border-color:rgba(61,187,147,.45)} /* --felt-hi 그대로는 대비 2.4:1이라 같은 계열의 밝은 톤 사용 */
 
 /* Buttons */
 .btn{min-height:52px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface-2);padding:0 18px;font-size:16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s,background .2s}
@@ -525,7 +527,7 @@ function step1(){
   return '<section class="panel"><h2 class="h">팀 설정</h2>'+
   '<label class="fld"><span>경기 날짜</span><input id="date" type="date" value="'+esc(S.date)+'"></label>'+
   '<div class="teams">'+['A','B'].map(function(t){return '<div class="tcard"><div class="tlabel"><span class="tag t'+t+'">'+t+'</span>'+(t==='A'?'우리 팀':'상대 팀')+'</div>'+
-    '<label class="fld"><span>팀 이름</span><input type="text" id="tname-'+t+'" data-tname="'+t+'" value="'+esc(S.teams[t].name)+'" maxlength="20" placeholder="'+(t==='A'?'더 브릿지(The Bridge)':'국제(Team. KUKJE)')+'"></label></div>'}).join('')+'</div></section>';
+    '<label class="fld"><span>팀 이름</span><input type="text" class="tn'+t+'" id="tname-'+t+'" data-tname="'+t+'" value="'+esc(S.teams[t].name)+'" maxlength="20" placeholder="'+(t==='A'?'더 브릿지(The Bridge)':'국제(Team. KUKJE)')+'"></label></div>'}).join('')+'</div></section>';
 }
 function step2(){
   var v=validate();
