@@ -9,6 +9,7 @@
 :root{
   --bg:#05070a; --surface:#0b1016; --surface-2:#111922; --line:#1d2833; --line-2:#2a3743;
   --felt:#0a3d31; --felt-hi:#11604c; --felt-ink:#cfe9df;
+  --team-a:#d4af37; --team-b:#3dbb93; /* 팀 이름 글자색. B는 --felt-hi 그대로면 대비 2.4:1이라 같은 계열의 밝은 톤 */
   --gold:#d4af37; --gold-hi:#e6c35c; --gold-ink:#1f1806; --gold-grad:linear-gradient(180deg,#f3dc8a 0%,#d4af37 48%,#b8912a 100%);
   --rail:#2a1a0d; --rail-hi:#4a2e16;
   --ink:#e9edf0; --muted:#8a97a3; --faint:#5b6773;
@@ -66,8 +67,9 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .tag{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;font-family:var(--f-num);font-size:12px;font-weight:700}
 .tag.tA{background:var(--gold);color:var(--gold-ink)}
 .tag.tB{background:var(--felt-hi);color:var(--felt-ink)}
-.fld input.tnA{color:var(--gold);font-weight:700;border-color:rgba(212,175,55,.45)}
-.fld input.tnB{color:#3dbb93;font-weight:700;border-color:rgba(61,187,147,.45)} /* --felt-hi 그대로는 대비 2.4:1이라 같은 계열의 밝은 톤 사용 */
+.fld input.tnA{color:var(--team-a);font-weight:700;border-color:rgba(212,175,55,.45)}
+.fld input.tnB{color:var(--team-b);font-weight:700;border-color:rgba(61,187,147,.45)}
+.app .tcA{color:var(--team-a)}.app .tcB{color:var(--team-b)}
 
 /* Buttons */
 .btn{min-height:52px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface-2);padding:0 18px;font-size:16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s,background .2s}
@@ -265,6 +267,7 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 /* Print */
 .print-only{display:none}
 @media print{
+  .app .tcA{color:#8a6d1f}.app .tcB{color:#063}
   :root{--bg:#fff;--surface:#fff;--surface-2:#fff;--ink:#000;--muted:#333;--faint:#666;--line:#999;--line-2:#999;--felt:#eef6f3;--felt-ink:#063;--warn-bg:#fff3df;--gold-hi:#8a6d1f;--gold-ink:#fff;--rail:#666;color-scheme:light}
   body{padding:0;font-size:12px}
   body::before{display:none}
@@ -291,7 +294,7 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
     </div>
     <div class="topr">
       <span class="store" id="store">자동 저장됨</span>
-      <div class="tbtns"><button type="button" class="btn xs ghost" data-act="history">이력</button><button type="button" class="btn xs ghost" data-act="bgm" id="bgmBtn" aria-pressed="false">♪ BGM</button><button type="button" class="btn xs danger" data-act="reset">초기화</button></div>
+      <div class="tbtns"><button type="button" class="btn xs ghost" data-act="history">이력</button><button type="button" class="btn xs ghost" data-act="bgm" id="bgmBtn" aria-pressed="true" aria-label="배경음악">♪ 켜짐</button><button type="button" class="btn xs danger" data-act="reset">초기화</button></div>
     </div>
   </header>
   <nav class="rail" id="rail" aria-label="진행 단계"></nav>
@@ -362,6 +365,7 @@ function save(){clearTimeout(saveT);saveT=setTimeout(function(){
 function P(t,i){return S.teams[t].players[i]}
 function sc(p){return parseInt(p.score,10)||0}
 function tn(t){return S.teams[t].name.trim()||t+'팀'}
+function tnh(t){return '<span class="tc'+t+'">'+esc(tn(t))+'</span>'}
 function cnt(t){return S.teams[t].players.length}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var x=a[i];a[i]=a[j];a[j]=x}return a}
 function idx(t){return S.teams[t].players.map(function(_,i){return i})}
@@ -408,7 +412,7 @@ function validate(){
 }
 function fieldBad(v,key){var x=v.f[key];return x==='bad'||(x==='empty'&&tried)}
 function vbox(v){
-  if(v.ok&&!v.notes.length)return '<div class="note ok">✓ 명단 확인 완료 · '+esc(tn('A'))+' '+cnt('A')+'명 : '+esc(tn('B'))+' '+cnt('B')+'명</div>';
+  if(v.ok&&!v.notes.length)return '<div class="note ok">✓ 명단 확인 완료 · '+tnh('A')+' '+cnt('A')+'명 : '+tnh('B')+' '+cnt('B')+'명</div>';
   var h='';
   var shown=v.errs.filter(function(e){return tried||e.k==='bad'});
   var empties=v.errs.filter(function(e){return e.k==='empty'}).length;
@@ -506,7 +510,7 @@ function canGo(s){if(s<=2)return true;if(!validate().ok)return false;return s===
 function renderRail(){
   $('#rail').innerHTML=STEPS.map(function(n,i){var s=i+1,c=s===S.step?'cur':s<S.step?'done':'';
     return '<button type="button" class="stp '+c+'" data-act="go" data-s="'+s+'" '+(canGo(s)?'':'disabled')+' aria-current="'+(s===S.step?'step':'false')+'"><i class="dia"></i><span>'+n+'</span></button>'}).join('');
-  $('#vsline').innerHTML='<b>'+esc(tn('A'))+'</b> vs <b>'+esc(tn('B'))+'</b> · '+esc(fmtDate(S.date));
+  $('#vsline').innerHTML='<b>'+tnh('A')+'</b> vs <b>'+tnh('B')+'</b> · '+esc(fmtDate(S.date));
 }
 function stepper(small){var n=cnt('A');return '<div class="stepper'+(small?' sm':'')+'">'+
   '<button type="button" class="sbtn" data-act="cnt" data-d="-1" '+(n<=1?'disabled':'')+' aria-label="양 팀 출전 인원 줄이기">−</button>'+
@@ -533,7 +537,7 @@ function step2(){
   var v=validate();
   return '<section class="panel"><div class="rhead"><h2 class="h">출전 인원 <small>양 팀 공통 · 게스트 줄 추가/삭제</small></h2>'+stepper(true)+'</div></section>'+(S.sample?'<div class="note sample"><div><b>예시 선수</b>가 들어 있습니다. 직접 고치거나 붙여넣기로 바꾸세요.</div><button type="button" class="btn xs ghost" data-act="clearSample">예시 비우기</button></div>':'')+
   ['A','B'].map(function(t){return '<section class="panel">'+
-    '<div class="rhead"><h2 class="h"><span class="tag t'+t+'">'+t+'</span>'+esc(tn(t))+' <small>'+cnt(t)+'명</small></h2></div>'+
+    '<div class="rhead"><h2 class="h"><span class="tag t'+t+'">'+t+'</span>'+tnh(t)+' <small>'+cnt(t)+'명</small></h2></div>'+
     (t==='A'?memberPicker():'')+
     '<details class="paste"><summary>여러 명 한꺼번에 붙여넣기</summary>'+
       '<p class="hint">한 줄에 한 명씩 <code>이름 점수</code> 형식으로 씁니다. 적용하면 현재 명단을 대체합니다.</p>'+
@@ -552,9 +556,9 @@ function step3(){
     opt('mode','random','무작위 매칭','선수를 섞어 짝짓습니다. 대진표 화면에서 다시 섞을 수 있습니다.')+
     opt('mode','rank','점수 그룹 매칭 ('+S.cut+'점 이하 / '+(S.cut+1)+'점 이상)','양 팀을 두 그룹으로 나눠 같은 그룹끼리 점수 순위대로 붙입니다. 같은 그룹에서 짝이 없는 선수는 상대 그룹과 섞지 않고 부전승(팀 1승)으로 처리합니다. 동점자 순서는 무작위입니다.')+
     opt('mode','manual','수동 매칭','짝을 직접 고릅니다. 이미 고른 선수는 다른 경기에서 고를 수 없습니다.')+'</div></section>';
-  if(mm&&S.mode!=='rank')h+='<section class="panel"><h2 class="h">인원이 다릅니다 <small>'+esc(tn('A'))+' '+nA+' : '+nB+' '+esc(tn('B'))+'</small></h2><div class="opts">'+
+  if(mm&&S.mode!=='rank')h+='<section class="panel"><h2 class="h">인원이 다릅니다 <small>'+tnh('A')+' '+nA+' : '+nB+' '+tnh('B')+'</small></h2><div class="opts">'+
     opt('mismatch','bye','남는 선수는 부전승','짝이 없는 '+diff+'명은 부전승으로 팀 1승씩 인정합니다.')+
-    opt('mismatch','double-random','2경기 · 무작위로 지정',esc(tn(smT))+' 선수 중 무작위로 '+Math.min(diff,smN)+'명이 한 경기 더 합니다.'+(diff>smN?' (인원 차가 커서 일부는 3경기 이상)':''))+
+    opt('mismatch','double-random','2경기 · 무작위로 지정',tnh(smT)+' 선수 중 무작위로 '+Math.min(diff,smN)+'명이 한 경기 더 합니다.'+(diff>smN?' (인원 차가 커서 일부는 3경기 이상)':''))+
     opt('mismatch','double-close','2경기 · 점수 근접으로 지정','남는 상대와 기준 점수가 가장 가까운 선수가 한 경기 더 합니다.')+'</div></section>';
   h+='<section class="panel"><h2 class="h">경기 설정</h2><div class="cfg">'+
     '<div class="fld"><span>당구대(테이블) 수 '+tblNote()+'</span>'+numStep('tables',1,MAXP,'대')+'</div>'+
@@ -569,8 +573,8 @@ function groupUI(){var a=groupCount('A'),b=groupCount('B'),hiX=Math.abs(a.hi-b.h
   return '<section class="panel"><h2 class="h">점수 그룹</h2>'+
   '<div class="fld"><span>그룹 경계 점수 (이 점수 이하가 하위 그룹)</span>'+numStep('cut',10,49,'점 이하')+'</div>'+
   '<div class="gtab" role="table"><div role="row"><span role="columnheader"></span><span role="columnheader">'+(S.cut+1)+'점 이상</span><span role="columnheader">'+S.cut+'점 이하</span></div>'+
-  '<div role="row"><span role="rowheader">'+esc(tn('A'))+'</span><b>'+a.hi+'</b><b>'+a.lo+'</b></div>'+
-  '<div role="row"><span role="rowheader">'+esc(tn('B'))+'</span><b>'+b.hi+'</b><b>'+b.lo+'</b></div></div>'+
+  '<div role="row"><span role="rowheader">'+tnh('A')+'</span><b>'+a.hi+'</b><b>'+a.lo+'</b></div>'+
+  '<div role="row"><span role="rowheader">'+tnh('B')+'</span><b>'+b.hi+'</b><b>'+b.lo+'</b></div></div>'+
   (hiX||loX?'<div class="note warn">짝이 없는 '+(hiX+loX)+'명은 부전승(팀 1승)입니다 ('+(S.cut+1)+'점 이상 '+hiX+'명 · '+S.cut+'점 이하 '+loX+'명). 경계 점수를 바꾸면 인원이 맞을 수 있습니다.</div>':'<p class="hint">두 그룹 모두 인원이 맞아 부전승이 없습니다.</p>')+'</section>'}
 function manualUI(){
   ensureManual();var u=usage(),lim={A:limit('A'),B:limit('B')};
@@ -599,10 +603,10 @@ function filledGroups(t){var hi=0,lo=0,un=0;S.teams[t].players.forEach(function(
   if(!/^\d{1,2}$/.test(v)||+v<1){if(p.name.trim())un++;return}if(+v>S.cut)hi++;else lo++});return {hi:hi,lo:lo,un:un}}
 function pickGroupInner(){var a=filledGroups('A'),b=filledGroups('B'),bOn=b.hi+b.lo>0,bFull=bOn&&b.hi+b.lo===cnt('B');
   var h='<div class="gtab" role="table" aria-label="그룹 구성"><div role="row"><span role="columnheader">그룹 구성</span><span role="columnheader">'+(S.cut+1)+'점 이상</span><span role="columnheader">'+S.cut+'점 이하</span></div>'+
-    '<div role="row"><span role="rowheader">'+esc(tn('A'))+'</span><b>'+a.hi+'</b><b>'+a.lo+'</b></div>'+
-    (bOn?'<div role="row"><span role="rowheader">'+esc(tn('B'))+(bFull?'':' (입력 중)')+'</span><b>'+b.hi+'</b><b>'+b.lo+'</b></div>':'')+'</div>';
+    '<div role="row"><span role="rowheader">'+tnh('A')+'</span><b>'+a.hi+'</b><b>'+a.lo+'</b></div>'+
+    (bOn?'<div role="row"><span role="rowheader">'+tnh('B')+(bFull?'':' (입력 중)')+'</span><b>'+b.hi+'</b><b>'+b.lo+'</b></div>':'')+'</div>';
   if(a.un)h+='<p class="hint">핸디가 없는 선수 '+a.un+'명은 그룹 계산에서 빠져 있습니다.</p>';
-  if(!bOn)h+='<p class="hint">'+esc(tn('B'))+' 선수 핸디를 입력하면 예상 부전승을 계산합니다.</p>';
+  if(!bOn)h+='<p class="hint">'+tnh('B')+' 선수 핸디를 입력하면 예상 부전승을 계산합니다.</p>';
   else{var hx=Math.abs(a.hi-b.hi),lx=Math.abs(a.lo-b.lo);
     h+=hx+lx?'<div class="note warn">예상 부전승 '+(hx+lx)+'명 ('+(S.cut+1)+'점 이상 '+hx+'명 · '+S.cut+'점 이하 '+lx+'명)'+(bFull?'':' · 현재 입력 기준')+'</div>':'<div class="note ok">그룹 인원이 맞아 부전승이 없습니다.'+(bFull?'':' (현재 입력 기준)')+'</div>'}
   return h}
@@ -617,9 +621,9 @@ function memberPicker(){
 }
 var MODE={random:'무작위',rank:'점수 그룹',manual:'수동'};
 function boardHTML(){var t=tally(),fin=t.total>0&&t.done===t.total;
-  return '<div class="bteam a'+(t.a>t.b?' lead':'')+'"><span>'+esc(tn('A'))+'</span><b>'+t.a+'</b></div>'+
+  return '<div class="bteam a'+(t.a>t.b?' lead':'')+'"><span>'+tnh('A')+'</span><b>'+t.a+'</b></div>'+
     '<div class="bmid">'+(fin?'<span class="fin">FINAL</span>':'')+'<span>'+t.done+'/'+t.total+'</span><small>경기 입력</small></div>'+
-    '<div class="bteam b'+(t.b>t.a?' lead':'')+'"><b>'+t.b+'</b><span>'+esc(tn('B'))+'</span></div>'+
+    '<div class="bteam b'+(t.b>t.a?' lead':'')+'"><b>'+t.b+'</b><span>'+tnh('B')+'</span></div>'+
     (t.hasG||t.ba||t.bb?'<div class="bsub">'+(t.hasG?'<span><i class="gdot hi"></i>'+(S.cut+1)+'점 이상 <b>'+t.G.hi.a+' : '+t.G.hi.b+'</b></span><span><i class="gdot lo"></i>'+S.cut+'점 이하 <b>'+t.G.lo.a+' : '+t.G.lo.b+'</b></span>':'')+
       (t.ba||t.bb?'<span>부전승 포함 '+t.ba+' : '+t.bb+'</span>':'')+'</div>':'')}
 function card(m){
@@ -644,7 +648,7 @@ function step4(){
     h+=(maxR>1?'<h3 class="round">'+r+'라운드</h3>':'')+'<div class="games">'+rg.map(card).join('')+'</div>';
   }
   if(byes.length)h+='<h3 class="round">부전승 <small style="font-weight:500;letter-spacing:0;color:var(--muted)">팀 승수에 1승씩 포함</small></h3><div class="byes">'+byes.map(function(m){var t=m.A!=null?'A':'B',p=P(t,m[t]);
-    return '<div class="bye"><span>'+esc(p.name)+' <span class="pscore">'+sc(p)+'</span></span><em>'+esc(tn(t))+(m.grp?' · '+(m.grp==='hi'?(S.cut+1)+'점 이상':S.cut+'점 이하'):'')+' · 부전승</em></div>'}).join('')+'</div>';
+    return '<div class="bye"><span>'+esc(p.name)+' <span class="pscore">'+sc(p)+'</span></span><em>'+tnh(t)+(m.grp?' · '+(m.grp==='hi'?(S.cut+1)+'점 이상':S.cut+'점 이하'):'')+' · 부전승</em></div>'}).join('')+'</div>';
   h+='<div class="acts no-print">'+
     (S.mode==='random'?'<button type="button" class="btn felt" data-act="reshuffle">다시 섞기</button>':'')+
     (S.mode==='rank'&&hasTies()?'<button type="button" class="btn felt" data-act="reshuffle">동점자 순서 다시 섞기</button>':'')+
@@ -675,6 +679,7 @@ function render(scrollTop){
 
 /* share text */
 function shareText(){
+  function tn(t){return (t==='A'?'🟡':'🟢')+(S.teams[t].name.trim()||t+'팀')}
   var g=games(),byes=S.matches.filter(function(m){return m.bye}),maxR=g.reduce(function(a,m){return Math.max(a,m.round)},0),t=tally();
   var L=['🎱 '+tn('A')+' vs '+tn('B')+' 교류전 대진표 ('+fmtDate(S.date)+')'],cur=0;
   g.forEach(function(m){
@@ -953,40 +958,43 @@ var act={
   reset:function(){modal({title:'처음부터 다시 시작할까요?',html:'<p>팀 이름, 선수 명단, 대진표와 승패 입력을 모두 지웁니다. 되돌릴 수 없습니다.</p>',ok:'초기화',danger:true,
     onOk:function(){S=defaults();tried=false;picked=null;VIEW='main';try{localStorage.removeItem(KEY)}catch(e){}render(true);toast('초기화했습니다')}})}
 };
-/* BGM: Web Audio 합성 스릴러 루프(D단조 128BPM, 8마디). 자동재생이 막히면 첫 사용자 입력 때 시작 */
+/* BGM: Web Audio 합성 테크노 루프(D단조 132BPM, 8마디). 매번 켜짐으로 시작, 자동재생이 막히면 첫 사용자 입력 때 시작 */
 var BGM=(function(){
-  var PKEY='cushion-xmatch-bgm',AC=window.AudioContext||window.webkitAudioContext;
-  var ctx=null,out=null,noise=null,timer=null,next=0,step=0,on=true,SPB=60/128/4;
-  try{on=localStorage.getItem(PKEY)!=='0'}catch(e){}
-  var ROOT=[38,34,31,33,38,34,31,33],
-      PAD=[[50,53,57],[46,50,53],[43,46,50],[45,49,52]],
-      LEAD=[74,75,74,0,74,75,77,0,74,75,74,0,73,74,73,0];
+  var AC=window.AudioContext||window.webkitAudioContext;
+  var ctx=null,out=null,noise=null,timer=null,next=0,step=0,on=true,SPB=60/132/4;
+  var ROOT=[38,38,38,38,34,34,36,36],
+      ACID=[0,0,12,0,0,3,0,12,0,0,10,0,7,0,12,3],
+      ARP=[0,7,12,15,12,7,3,7,0,7,12,19,15,12,7,3];
   function hz(m){return 440*Math.pow(2,(m-69)/12)}
   function env(t,a,peak,dur){var g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);g.connect(out);return g}
-  function osc(type,f,t,dur,vol,cut,a){var o=ctx.createOscillator(),lp=ctx.createBiquadFilter();o.type=type;o.frequency.setValueAtTime(f,t);lp.type='lowpass';lp.frequency.setValueAtTime(cut,t);o.connect(lp);lp.connect(env(t,a||0.005,vol,dur));o.start(t);o.stop(t+dur+0.05);return o}
-  function kick(t){var o=ctx.createOscillator();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+0.18);o.connect(env(t,0.003,0.9,0.3));o.start(t);o.stop(t+0.35)}
-  function hiss(t,dur,vol,f0,f1){var s=ctx.createBufferSource(),f=ctx.createBiquadFilter();s.buffer=noise;f.type=f1?'bandpass':'highpass';f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);s.connect(f);f.connect(env(t,f1?dur*0.9:0.002,vol,dur));s.start(t);s.stop(t+dur+0.05)}
+  function osc(type,f,t,dur,vol,cut,q,sweep){var o=ctx.createOscillator(),lp=ctx.createBiquadFilter();o.type=type;o.frequency.setValueAtTime(f,t);
+    lp.type='lowpass';lp.Q.value=q||1;lp.frequency.setValueAtTime(sweep||cut,t);if(sweep)lp.frequency.exponentialRampToValueAtTime(cut,t+dur);
+    o.connect(lp);lp.connect(env(t,0.004,vol,dur));o.start(t);o.stop(t+dur+0.05)}
+  function kick(t){var o=ctx.createOscillator();o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(42,t+0.12);o.connect(env(t,0.002,1,0.32));o.start(t);o.stop(t+0.36)}
+  function hiss(t,dur,vol,type,f0,f1){var s=ctx.createBufferSource(),f=ctx.createBiquadFilter();s.buffer=noise;f.type=type;f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);s.connect(f);f.connect(env(t,f1?dur*0.9:0.002,vol,dur));s.start(t);s.stop(t+dur+0.05)}
   function play(i,t){
-    var bar=Math.floor(i/16)%8,s=i%16,r=ROOT[bar],late=bar>=4;
-    if(s%2===0)osc('sawtooth',hz(s===14?r+12:r),t,SPB*1.6,0.22,late?900:600);
-    if(s===0||s===8||(late&&(s===4||s===12))||(bar===7&&s>=12))kick(t);
-    hiss(t,0.04,s%4===2?0.12:0.05,7000);
-    if(s===0)PAD[bar%4].forEach(function(m){osc('sawtooth',hz(m),t,SPB*16,0.035,1400,0.6).detune.setValueAtTime(m%2?7:-7,t)});
-    if(late&&LEAD[s])osc('square',hz(LEAD[s]),t,SPB*0.9,0.05,2500);
-    if(bar===7&&s===0)hiss(t,SPB*16,0.18,300,6000);
+    var bar=Math.floor(i/16)%8,s=i%16,r=ROOT[bar],late=bar>=4,open=600+2400*((bar%4)*16+s)/63;
+    if(s%4===0)kick(t);
+    if(s===4||s===12){hiss(t,0.14,0.35,'bandpass',1600);hiss(t+0.012,0.1,0.25,'bandpass',1100)}
+    hiss(t,s%4===2?0.12:0.03,s%4===2?0.22:0.07,'highpass',8000);
+    if(ACID[s]!=null&&(s%4!==1))osc('sawtooth',hz(r+ACID[s]),t,SPB*0.95,s%4===0?0.32:0.22,180,14,open*(s%4===0?1.4:1));
+    if(late)osc('square',hz(r+24+ARP[s]),t,SPB*0.7,0.07,3200);
+    if(bar===3&&s>=12)osc('square',hz(r+36+(s-12)*3),t,SPB*0.5,0.06,5000);
+    if(bar===7&&s===0)hiss(t,SPB*16,0.3,'bandpass',400,8000);
   }
   function tick(){while(next<ctx.currentTime+0.12){play(step++,next);next+=SPB}}
   function run(){if(!on||!ctx||ctx.state!=='running'||timer)return;next=ctx.currentTime+0.05;timer=setInterval(tick,25);ui()}
   function halt(){clearInterval(timer);timer=null;if(ctx)ctx.suspend();ui()}
   function start(){if(!on||!AC)return;
-    if(!ctx){ctx=new AC();out=ctx.createGain();out.gain.value=0.35;out.connect(ctx.destination);
+    if(!ctx){ctx=new AC();var comp=ctx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;comp.connect(ctx.destination);
+      out=ctx.createGain();out.gain.value=0.9;out.connect(comp);
       noise=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);var d=noise.getChannelData(0);for(var k=0;k<d.length;k++)d[k]=Math.random()*2-1}
-    var p=ctx.resume();if(p&&p.then)p.then(run,function(){});else run()}
-  function ui(){var b=document.getElementById('bgmBtn');if(!b)return;var playing=!!timer;b.setAttribute('aria-pressed',String(playing));b.textContent=playing?'♪ BGM 끄기':'♪ BGM 켜기';b.hidden=!AC}
+    var p=ctx.resume();if(p&&p.then)p.then(run,function(){});else run();ui()}
+  function ui(){var b=document.getElementById('bgmBtn');if(!b)return;b.setAttribute('aria-pressed',String(on));b.textContent=on?'♪ 켜짐':'♪ 꺼짐';b.hidden=!AC}
   function unlock(e){if(!timer&&!(e.target.closest&&e.target.closest('#bgmBtn')))start()}
   ['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,unlock,{capture:true,passive:true})});
   document.addEventListener('visibilitychange',function(){if(document.hidden){if(timer)halt()}else start()});
-  return {start:start,ui:ui,toggle:function(){if(on&&!timer){start();return}on=!on;try{localStorage.setItem(PKEY,on?'1':'0')}catch(e){}if(on)start();else halt()}};
+  return {start:start,ui:ui,toggle:function(){if(on&&!timer){start();return}on=!on;if(on)start();else halt()}};
 })();
 act.bgm=function(){BGM.toggle()};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-act]');if(!b||b.disabled)return;var f=act[b.dataset.act];if(f)f(b)});
