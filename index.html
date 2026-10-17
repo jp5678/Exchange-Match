@@ -984,36 +984,26 @@ var act={
   reset:function(){modal({title:'처음부터 다시 시작할까요?',html:'<p>팀 이름, 선수 명단, 대진표와 승패 입력을 모두 지웁니다. 되돌릴 수 없습니다.</p>',ok:'초기화',danger:true,
     onOk:function(){S=defaults();tried=false;picked=null;VIEW='main';try{localStorage.removeItem(KEY)}catch(e){}render(true);toast('초기화했습니다')}})}
 };
-/* BGM: Web Audio 합성 서스펜스 루프(C단조 96BPM, 8마디). 셰퍼드 톤(끝없이 상승), 반음 충돌 현악, 빨라지는 심장 박동.
-   매번 켜짐으로 시작, 자동재생이 막히면 첫 사용자 입력 때 시작 */
+/* BGM: Web Audio 합성 스릴러 루프(D단조 128BPM, 8마디). 매번 켜짐으로 시작, 자동재생이 막히면 첫 사용자 입력 때 시작 */
 var BGM=(function(){
   var AC=window.AudioContext||window.webkitAudioContext;
-  var ctx=null,out=null,noise=null,timer=null,next=0,step=0,on=true,SPB=60/96/4;
-  var OST=[0,1,0,1,0,1,0,1,0,3,0,1,0,6,0,1];
+  var ctx=null,out=null,noise=null,timer=null,next=0,step=0,on=true,SPB=60/128/4;
+  var ROOT=[38,34,31,33,38,34,31,33],
+      PAD=[[50,53,57],[46,50,53],[43,46,50],[45,49,52]],
+      LEAD=[74,75,74,0,74,75,77,0,74,75,74,0,73,74,73,0];
   function hz(m){return 440*Math.pow(2,(m-69)/12)}
   function env(t,a,peak,dur){var g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);g.connect(out);return g}
-  function osc(type,f,t,dur,vol,cut,q,sweep,a){var o=ctx.createOscillator(),lp=ctx.createBiquadFilter();o.type=type;o.frequency.setValueAtTime(f,t);
-    lp.type='lowpass';lp.Q.value=q||1;lp.frequency.setValueAtTime(sweep||cut,t);if(sweep)lp.frequency.exponentialRampToValueAtTime(cut,t+dur);
-    o.connect(lp);lp.connect(env(t,a||0.004,vol,dur));o.start(t);o.stop(t+dur+0.05)}
-  function thump(t,vol){var o=ctx.createOscillator();o.frequency.setValueAtTime(95,t);o.frequency.exponentialRampToValueAtTime(34,t+0.16);o.connect(env(t,0.003,vol,0.3));o.start(t);o.stop(t+0.34)}
-  function hiss(t,dur,vol,type,f0,f1){var s=ctx.createBufferSource(),f=ctx.createBiquadFilter();s.buffer=noise;f.type=type;f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);s.connect(f);f.connect(env(t,f1?dur*0.9:0.002,vol,dur));s.start(t);s.stop(t+dur+0.05)}
-  /* 셰퍼드 톤: 옥타브 간격 사인파 6개가 한 마디 동안 한 옥타브씩 올라가고, 가장자리 음량을 줄여 끝없이 상승하는 착각을 만듦 */
-  function shepard(t,dur){var N=6,bell=function(x){return 0.0001+0.05*Math.pow(Math.sin(Math.PI*x),2)};
-    for(var k=0;k<N;k++){var o=ctx.createOscillator(),g=ctx.createGain(),f=55*Math.pow(2,k);o.type='sine';
-      o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*2,t+dur);
-      g.gain.setValueAtTime(bell(k/N),t);g.gain.linearRampToValueAtTime(bell((k+0.5)/N),t+dur/2);g.gain.linearRampToValueAtTime(bell((k+1)/N),t+dur);
-      o.connect(g);g.connect(out);o.start(t);o.stop(t+dur+0.02)}}
+  function osc(type,f,t,dur,vol,cut,a){var o=ctx.createOscillator(),lp=ctx.createBiquadFilter();o.type=type;o.frequency.setValueAtTime(f,t);lp.type='lowpass';lp.frequency.setValueAtTime(cut,t);o.connect(lp);lp.connect(env(t,a||0.005,vol,dur));o.start(t);o.stop(t+dur+0.05);return o}
+  function kick(t){var o=ctx.createOscillator();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+0.18);o.connect(env(t,0.003,0.9,0.3));o.start(t);o.stop(t+0.35)}
+  function hiss(t,dur,vol,f0,f1){var s=ctx.createBufferSource(),f=ctx.createBiquadFilter();s.buffer=noise;f.type=f1?'bandpass':'highpass';f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);s.connect(f);f.connect(env(t,f1?dur*0.9:0.002,vol,dur));s.start(t);s.stop(t+dur+0.05)}
   function play(i,t){
-    var bar=Math.floor(i/16)%8,s=i%16,r=bar<4?36:37,BAR=SPB*16,late=bar>=4;
-    if(s===0)shepard(t,BAR);
-    if(s===0||s===8||(late&&(s===4||s===12))){thump(t,1);thump(t+SPB*0.8,0.55)}
-    if(s%2===0)hiss(t,0.02,s%4?0.08:0.16,s%4?'bandpass':'highpass',s%4?2800:6500);
-    var m=r+24+OST[s];osc('sawtooth',hz(m),t,SPB*0.9,s%4===0?0.16:0.11,1100,3,2800);
-    if(late)osc('sawtooth',hz(m+12),t,SPB*0.7,0.06,2400);
-    if(s===0)[0,1,6].forEach(function(d){osc('sawtooth',hz(r+12+d),t,BAR,0.06,700,1,0,1.2)});
-    if(s===0&&bar%4===0)[r,r+7,r+12].forEach(function(n){osc('sawtooth',hz(n),t,BAR*0.9,0.18,1300,3,120,0.3)});
-    if(bar===7&&s===0)hiss(t,BAR,0.28,'bandpass',300,7000);
-    if(bar===7&&s===14)thump(t,1);
+    var bar=Math.floor(i/16)%8,s=i%16,r=ROOT[bar],late=bar>=4;
+    if(s%2===0)osc('sawtooth',hz(s===14?r+12:r),t,SPB*1.6,0.22,late?900:600);
+    if(s===0||s===8||(late&&(s===4||s===12))||(bar===7&&s>=12))kick(t);
+    hiss(t,0.04,s%4===2?0.12:0.05,7000);
+    if(s===0)PAD[bar%4].forEach(function(m){osc('sawtooth',hz(m),t,SPB*16,0.035,1400,0.6).detune.setValueAtTime(m%2?7:-7,t)});
+    if(late&&LEAD[s])osc('square',hz(LEAD[s]),t,SPB*0.9,0.05,2500);
+    if(bar===7&&s===0)hiss(t,SPB*16,0.18,300,6000);
   }
   function tick(){while(next<ctx.currentTime+0.12){play(step++,next);next+=SPB}}
   function run(){if(!on||!ctx||ctx.state!=='running'||timer)return;next=ctx.currentTime+0.05;timer=setInterval(tick,25);ui()}
