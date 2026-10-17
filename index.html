@@ -377,6 +377,10 @@ function save(){clearTimeout(saveT);saveT=setTimeout(function(){
 function P(t,i){return S.teams[t].players[i]}
 function sc(p){return parseInt(p.score,10)||0}
 function tn(t){return S.teams[t].name.trim()||t+'팀'}
+/* 표시용 짧은 이름: 상대 팀 자동 이름 '국제(Team. KUKJE)-01' → 'KUKJE-01'. 저장값과 직접 입력한 이름은 그대로 */
+function dn(name){name=String(name).trim();var b=tn('B'),m=name.match(/-(\d{2})$/);
+  if(!m||name!==b+'-'+m[1])return name;var q=b.match(/\(([^)]*)\)/),sh=q?q[1].replace(/^team\.?\s*/i,'').trim():'';
+  return (sh||b)+'-'+m[1]}
 function tnh(t){return '<span class="tc'+t+'">'+esc(tn(t))+'</span>'}
 function cnt(t){return S.teams[t].players.length}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var x=a[i];a[i]=a[j];a[j]=x}return a}
@@ -594,8 +598,8 @@ function manualUI(){
   function sel(t,i,cur){
     return '<select id="ms-'+t+'-'+i+'" data-ms="'+t+'" data-i="'+i+'" aria-label="'+(i+1)+'경기 '+t+'팀 선수"><option value="">'+(t==='A'?esc(tn('A')):esc(tn('B')))+' 선택</option>'+
       S.teams[t].players.map(function(p,j){var used=u[t][j]||0,mine=String(cur)===String(j),dis=!mine&&used>=lim[t];
-        return '<option value="'+j+'"'+(mine?' selected':'')+(dis?' disabled':'')+'>'+esc(p.name.trim()||'(이름 없음)')+' ('+esc(p.score)+')'+(used&&!mine?' ✓':'')+'</option>'}).join('')+'</select>'}
-  var un=[];['A','B'].forEach(function(t){idx(t).forEach(function(i){if(!u[t][i])un.push(P(t,i).name.trim()+'('+tn(t)+')')})});
+        return '<option value="'+j+'"'+(mine?' selected':'')+(dis?' disabled':'')+'>'+esc(dn(p.name)||'(이름 없음)')+' ('+esc(p.score)+')'+(used&&!mine?' ✓':'')+'</option>'}).join('')+'</select>'}
+  var un=[];['A','B'].forEach(function(t){idx(t).forEach(function(i){if(!u[t][i])un.push(dn(P(t,i).name)+'('+tn(t)+')')})});
   return '<section class="panel"><h2 class="h">짝 지정 <small>완성 '+full+' / '+S.manual.length+'경기</small></h2>'+
     '<div class="mlist">'+S.manual.map(function(r,i){return '<div class="mrow"><span class="pno">'+(i+1)+'</span>'+sel('A',i,r.A)+'<span class="vs">VS</span>'+sel('B',i,r.B)+'</div>'}).join('')+'</div>'+
     '<div class="mtools"><button type="button" class="btn xs ghost" data-act="mFill">빈칸을 점수 순으로 채우기</button><button type="button" class="btn xs ghost" data-act="mClear">모두 비우기</button></div>'+
@@ -641,8 +645,8 @@ function boardHTML(){var t=tally(),fin=t.total>0&&t.done===t.total;
 function card(m){
   var A=P('A',m.A),B=P('B',m.B),d=Math.abs(sc(A)-sc(B)),hot=d>=S.warn;
   function side(t,p){var w=m.winner===t,l=m.winner&&!w;
-    return '<button type="button" class="side s'+t+(w?' win':'')+(l?' lose':'')+'" data-act="win" data-no="'+m.no+'" data-w="'+t+'" aria-pressed="'+w+'" aria-label="'+esc(p.name)+' 승리 입력"><span class="pname">'+esc(p.name)+'</span><span class="pscore">'+sc(p)+'</span><span class="wtag">'+(w?'승':'탭하여 승 입력')+'</span></button>'}
-  var ex=m.extra?'<span class="chip">'+esc(P(m.extra,m[m.extra]).name)+' 2경기째</span>':'';
+    return '<button type="button" class="side s'+t+(w?' win':'')+(l?' lose':'')+'" data-act="win" data-no="'+m.no+'" data-w="'+t+'" aria-pressed="'+w+'" aria-label="'+esc(p.name)+' 승리 입력"><span class="pname">'+esc(dn(p.name))+'</span><span class="pscore">'+sc(p)+'</span><span class="wtag">'+(w?'승':'탭하여 승 입력')+'</span></button>'}
+  var ex=m.extra?'<span class="chip">'+esc(dn(P(m.extra,m[m.extra]).name))+' 2경기째</span>':'';
   if(m.grp)ex='<span class="chip grp '+m.grp+'">'+(m.grp==='hi'?(S.cut+1)+'점 이상':m.grp==='lo'?S.cut+'점 이하':'교차')+'</span>'+ex;
   return '<article class="match'+(hot?' hot':'')+'" id="g'+m.no+'"><div class="mhead"><span class="gno">'+m.no+'경기</span>'+ex+
     '<span class="diff'+(hot?' hot':'')+'">점수 차 '+d+'</span></div><div class="mbody">'+side('A',A)+'<span class="vs">VS</span>'+side('B',B)+'</div></article>';
@@ -660,7 +664,7 @@ function step4(){
     h+=(maxR>1?'<h3 class="round">'+r+'라운드</h3>':'')+'<div class="games">'+rg.map(card).join('')+'</div>';
   }
   if(byes.length)h+='<h3 class="round">부전승 <small style="font-weight:500;letter-spacing:0;color:var(--muted)">팀 승수에 1승씩 포함</small></h3><div class="byes">'+byes.map(function(m){var t=m.A!=null?'A':'B',p=P(t,m[t]);
-    return '<div class="bye"><span>'+esc(p.name)+' <span class="pscore">'+sc(p)+'</span></span><em>'+tnh(t)+(m.grp?' · '+(m.grp==='hi'?(S.cut+1)+'점 이상':S.cut+'점 이하'):'')+' · 부전승</em></div>'}).join('')+'</div>';
+    return '<div class="bye"><span>'+esc(dn(p.name))+' <span class="pscore">'+sc(p)+'</span></span><em>'+tnh(t)+(m.grp?' · '+(m.grp==='hi'?(S.cut+1)+'점 이상':S.cut+'점 이하'):'')+' · 부전승</em></div>'}).join('')+'</div>';
   h+='<div class="acts no-print">'+
     (S.mode==='random'?'<button type="button" class="btn felt" data-act="reshuffle">다시 섞기</button>':'')+
     (S.mode==='rank'&&hasTies()?'<button type="button" class="btn felt" data-act="reshuffle">동점자 순서 다시 섞기</button>':'')+
@@ -705,11 +709,11 @@ function shareText(){
   g.forEach(function(m){
     if(maxR>1&&m.round!==cur){cur=m.round;L.push('','['+cur+'라운드]')}
     var A=P('A',m.A),B=P('B',m.B);
-    var s=m.no+'경기 '+A.name.trim()+'('+sc(A)+') vs '+B.name.trim()+'('+sc(B)+')';
-    if(m.winner)s+=' → '+(m.winner==='A'?A:B).name.trim()+' 승';
+    var s=m.no+'경기 '+dn(A.name)+'('+sc(A)+') vs '+dn(B.name)+'('+sc(B)+')';
+    if(m.winner)s+=' → '+dn((m.winner==='A'?A:B).name)+' 승';
     L.push(s);
   });
-  if(byes.length)L.push('','부전승: '+byes.map(function(m){var tt=m.A!=null?'A':'B',p=P(tt,m[tt]);return p.name.trim()+'('+sc(p)+', '+tn(tt)+')'}).join(', '));
+  if(byes.length)L.push('','부전승: '+byes.map(function(m){var tt=m.A!=null?'A':'B',p=P(tt,m[tt]);return dn(p.name)+'('+sc(p)+', '+tn(tt)+')'}).join(', '));
   if(t.done){L.push('','🏆 '+(t.done===t.total?'최종 스코어':'현재 스코어')+' '+tn('A')+' '+t.a+' : '+t.b+' '+tn('B')+(t.done<t.total?' ('+t.done+'/'+t.total+'경기 입력)':''));
     if(t.hasG)L.push('   · '+(S.cut+1)+'점 이상 '+t.G.hi.a+' : '+t.G.hi.b+' / '+S.cut+'점 이하 '+t.G.lo.a+' : '+t.G.lo.b);
     if(t.ba||t.bb)L.push('   · 부전승 포함 ('+tn('A')+' '+t.ba+', '+tn('B')+' '+t.bb+')')}
