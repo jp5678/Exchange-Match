@@ -252,6 +252,13 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .bar .btn.back{flex:0 0 auto;min-width:96px}
 
 /* Modal & toast */
+.splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;text-align:center;cursor:pointer;
+  background:radial-gradient(120% 80% at 50% 40%,var(--felt) 0%,#04201a 55%,var(--bg) 100%)}
+.splash[hidden]{display:none}
+.splash .eyebrow{margin-bottom:8px}
+.splash h2{margin:0 0 28px;font-size:30px;font-weight:900;line-height:1.25}
+.splash .btn{min-width:200px;min-height:56px;font-size:18px}
+.splash p{margin:16px 0 0;color:var(--muted);font-size:13px}
 .modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:16px}
 .mbox{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line-2);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px}
 .mbox h3{margin:0;font-size:18px}
@@ -313,6 +320,11 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
       <button type="button" class="btn gold" id="mOk">확인</button>
     </div>
   </div>
+</div>
+<div class="splash" id="splash" hidden>
+  <div><div class="eyebrow">3-Cushion · Exchange Match</div><h2>3쿠션 교류전<br>대진표 생성기</h2>
+  <button type="button" class="btn gold" id="splashGo">▶ 시작하기</button>
+  <p>화면을 탭하면 배경음악과 함께 시작합니다</p></div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -951,7 +963,7 @@ var act={
       if(DB)DB.collection('events').doc(id).delete().then(after,function(){toast('삭제하지 못했습니다. 잠시 후 다시 시도해 주세요')});
       else{var a=localHist().filter(function(x){return x.id!==id});setLocalHist(a);HIST=sortHist(a);after()}}})},
   win:function(b){var no=+b.dataset.no,w=b.dataset.w,m=S.matches.find(function(x){return x.no===no});if(!m)return;
-    m.winner=m.winner===w?null:w;var el=$('#g'+no);if(el)el.outerHTML=card(m);$('#board').innerHTML=boardHTML();save()},
+    m.winner=m.winner===w?null:w;BGM.sfx(m.winner);var el=$('#g'+no);if(el)el.outerHTML=card(m);$('#board').innerHTML=boardHTML();save()},
   copy:function(){var txt=shareText();
     function fallback(){modal({title:'아래 내용을 복사하세요',html:'<p>이 환경에서는 자동 복사가 막혀 있습니다. 텍스트를 길게 눌러 복사하세요.</p><textarea id="cpTa" readonly>'+esc(txt)+'</textarea>',noOk:true,cancel:'닫기'})}
     try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast(tally().done?'스코어 포함 대진표를 복사했습니다':'대진표를 복사했습니다')},fallback)}else fallback()}catch(e){fallback()}},
@@ -983,18 +995,26 @@ var BGM=(function(){
     if(bar===7&&s===0)hiss(t,SPB*16,0.3,'bandpass',400,8000);
   }
   function tick(){while(next<ctx.currentTime+0.12){play(step++,next);next+=SPB}}
-  function run(){if(!on||!ctx||ctx.state!=='running'||timer)return;next=ctx.currentTime+0.05;timer=setInterval(tick,25);ui()}
+  function run(){if(!on||!ctx||ctx.state!=='running'||timer)return;next=ctx.currentTime+0.05;timer=setInterval(tick,25);ui();splash(false)}
   function halt(){clearInterval(timer);timer=null;if(ctx)ctx.suspend();ui()}
   function start(){if(!on||!AC)return;
     if(!ctx){ctx=new AC();var comp=ctx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;comp.connect(ctx.destination);
       out=ctx.createGain();out.gain.value=0.9;out.connect(comp);
       noise=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);var d=noise.getChannelData(0);for(var k=0;k<d.length;k++)d[k]=Math.random()*2-1}
     var p=ctx.resume();if(p&&p.then)p.then(run,function(){});else run();ui()}
+  /* 브라우저가 소리 자동재생을 막으면(첫 사용자 입력 전) 시작 화면을 띄워 첫 탭에 재생 */
+  function splash(show){var el=document.getElementById('splash');if(el)el.hidden=!show}
+  document.getElementById('splash').addEventListener('click',function(){splash(false)});
   function ui(){var b=document.getElementById('bgmBtn');if(!b)return;b.setAttribute('aria-pressed',String(on));b.textContent=on?'♪ 켜짐':'♪ 꺼짐';b.hidden=!AC}
   function unlock(e){if(!timer&&!(e.target.closest&&e.target.closest('#bgmBtn')))start()}
   ['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,unlock,{capture:true,passive:true})});
   document.addEventListener('visibilitychange',function(){if(document.hidden){if(timer)halt()}else start()});
-  return {start:start,ui:ui,toggle:function(){if(on&&!timer){start();return}on=!on;if(on)start();else halt()}};
+  /* 승 입력 효과음: A 승=상승 팡파르, B 승=하강 두 음, 취소=짧은 클릭. BGM을 끄면 함께 끔 */
+  function sfx(w){if(!on||!ctx||ctx.state!=='running')return;var t=ctx.currentTime+0.01;
+    if(w==='A')[74,78,81,86].forEach(function(m,k){osc('square',hz(m),t+k*0.07,k===3?0.45:0.12,0.16,4500)});
+    else if(w==='B')[62,57].forEach(function(m,k){osc('sawtooth',hz(m),t+k*0.16,0.28,0.2,1800)});
+    else osc('triangle',hz(93),t,0.05,0.12,8000)}
+  return {start:start,ui:ui,sfx:sfx,gate:function(){if(AC)setTimeout(function(){if(on&&!timer)splash(true)},400)},toggle:function(){if(on&&!timer){start();return}on=!on;if(on)start();else halt()}};
 })();
 act.bgm=function(){BGM.toggle()};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-act]');if(!b||b.disabled)return;var f=act[b.dataset.act];if(f)f(b)});
@@ -1012,7 +1032,7 @@ document.addEventListener('input',function(e){var el=e.target;
 document.addEventListener('change',function(e){var el=e.target;if(el.dataset.ms){ensureManual();S.manual[+el.dataset.i][el.dataset.ms]=el.value;invalidate();render()}});
 
 render();
-BGM.ui();BGM.start();
+BGM.ui();BGM.start();BGM.gate();
 })();
 </script>
 
