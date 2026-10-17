@@ -158,8 +158,9 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .tbtns{display:flex;gap:6px}
 .tbtns [data-act=bgm][aria-pressed=true]{color:var(--gold-hi);border-color:var(--gold)}
 .tbtns [data-act=bgm].pending{animation:bgmPulse 1.2s ease-in-out infinite} /* 켜짐이지만 첫 탭 전이라 아직 재생 전 */
+.paste summary.pending{animation:bgmPulse 1.2s ease-in-out infinite;border-radius:10px;padding:0 10px;margin:0 -10px} /* 상대 팀이 아직 임시 명단 */
 @keyframes bgmPulse{0%,100%{box-shadow:0 0 0 0 rgba(212,175,55,0)}50%{box-shadow:0 0 0 5px rgba(212,175,55,.45);background:rgba(212,175,55,.18)}}
-@media (prefers-reduced-motion:reduce){.tbtns [data-act=bgm].pending{animation:none;background:rgba(212,175,55,.18)}}
+@media (prefers-reduced-motion:reduce){.tbtns [data-act=bgm].pending,.paste summary.pending{animation:none;background:rgba(212,175,55,.18)}}
 .htab{display:grid;gap:4px;font-size:14px}
 .hrow{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(36px,.6fr));gap:6px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--bg)}
 .htab.mem .hrow{grid-template-columns:minmax(64px,1.3fr) repeat(6,minmax(34px,.6fr))}
@@ -369,6 +370,9 @@ function P(t,i){return S.teams[t].players[i]}
 function sc(p){return parseInt(p.score,10)||0}
 function tn(t){return S.teams[t].name.trim()||t+'팀'}
 /* 표시용 짧은 이름: 상대 팀 자동 이름 '국제(Team. KUKJE)-01' → 'KUKJE-01'. 저장값과 직접 입력한 이름은 그대로 */
+/* 상대 팀 명단에 자동 이름(임시 데이터)이 남아 있는지 */
+function tempB(){var b=tn('B');return S.teams.B.players.some(function(p){var n=String(p.name).trim();return /-\d{2}$/.test(n)&&n.slice(0,-3)===b})}
+function pasteSum(t){var tmp=t==='B'&&tempB();return '<summary id="ps-'+t+'"'+(tmp?' class="pending"':'')+'>여러 명 한꺼번에 붙여넣기'+(tmp?' (임시 설정 상태임)':'')+'</summary>'}
 function dn(name){name=String(name).trim();var b=tn('B'),m=name.match(/-(\d{2})$/);
   if(!m||name!==b+'-'+m[1])return name;var q=b.match(/\(([^)]*)\)/),sh=q?q[1].replace(/^team\.?\s*/i,'').trim():'';
   return (sh||b)+'-'+m[1]}
@@ -554,7 +558,7 @@ function step2(){
   ['A','B'].map(function(t){return '<section class="panel">'+
     '<div class="rhead"><h2 class="h"><span class="tag t'+t+'">'+t+'</span>'+tnh(t)+' <small>'+cnt(t)+'명</small></h2></div>'+
     (t==='A'?memberPicker():'')+
-    '<details class="paste"><summary>여러 명 한꺼번에 붙여넣기</summary>'+
+    '<details class="paste">'+pasteSum(t)+
       '<p class="hint">한 줄에 한 명씩 <code>이름 점수</code> 형식으로 씁니다. 적용하면 현재 명단을 대체합니다.</p>'+
       '<textarea id="pt-'+t+'" rows="5" placeholder="홍길동 25&#10;김철수 23&#10;이영희 20"></textarea>'+
       '<button type="button" class="btn sm gold" data-act="paste" data-t="'+t+'">출전자 명단에 적용</button></details>'+
@@ -1033,6 +1037,7 @@ document.addEventListener('input',function(e){var el=e.target;
     if(f==='score'){var q=document.getElementById('p80-'+el.dataset.t+'-'+el.dataset.i);if(q)q.textContent=p80(v)}
     if(el.dataset.t==='A'&&p.name.trim()&&p.score)S.scores[p.name.trim()]=p.score;
     if(S.sample){S.sample=false;var sb=document.querySelector('.note.sample');if(sb)sb.remove()}
+    if(el.dataset.t==='B'&&f==='name'){var ps=$('#ps-B');if(ps)ps.outerHTML=pasteSum('B')}
     invalidate();refreshValidation();renderRail();save();return}
   if(el.dataset.tname){S.teams[el.dataset.tname].name=el.value;renderRail();save();return}
   if(el.id==='date'){S.date=el.value;renderRail();save()}
