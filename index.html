@@ -63,6 +63,14 @@ h1{margin:2px 0 0;font-size:26px;font-weight:900;letter-spacing:-.02em;text-wrap
 .hint{margin:0;font-size:13px;color:var(--muted)}
 code{font-family:var(--f-num);font-size:12px;background:var(--surface-2);padding:1px 6px;border-radius:4px;color:var(--gold-hi)}
 .fld{display:flex;flex-direction:column;gap:6px}
+/* 경기 날짜·시간: iOS 기본 날짜 칸은 최소 너비 때문에 넘치고 아이콘이 없어, 직접 그린 칸 위에 투명한 실제 입력을 겹침 */
+.dt{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.dtp{position:relative;flex:1 1 190px;min-width:0;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 12px;background:var(--surface-2);border:1px solid var(--line-2);border-radius:10px;font-size:15px;cursor:pointer;overflow:hidden}
+.dtp.t{flex:1 1 120px}
+.dtp svg{flex:none;color:var(--gold-hi)}
+.dtp b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dtp input{position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;padding:0;border:0;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+.dtp:focus-within{border-color:var(--gold)}
 .fld>span{font-size:13px;color:var(--muted);letter-spacing:.02em}
 input[type=text],input:not([type]),input[type=date],select,textarea{width:100%;min-height:48px;background:var(--surface-2);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;font-size:16px}
 textarea{resize:vertical;font-family:var(--f-num);font-size:15px;line-height:1.6}
@@ -341,7 +349,7 @@ function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()
 function blank(n){var a=[];for(var i=0;i<n;i++)a.push({name:'',score:''});return a}
 function fromPairs(arr){return arr.map(function(x){return {name:x[0],score:String(x[1])}})}
 function defaults(){
-  return {step:1,sample:false,date:today(),scores:Object.assign({},HANDI),
+  return {step:1,sample:false,date:today(),time:'19:30',scores:Object.assign({},HANDI),
     teams:{A:{name:'더 브릿지(The Bridge)',players:MEMBERS.map(function(n){return {name:n,score:HANDI[n]}})},
            B:{name:'국제(Team. KUKJE)',players:blank(MEMBERS.length)}},
     mode:'random',balance:'on',mismatch:'bye',tables:MEMBERS.length,tablesAuto:true,warn:5,cut:25,manual:[],matches:null};
@@ -353,6 +361,7 @@ function load(){
   if(d.step===4&&!d.matches)d.step=3;
   if(!d.scores||typeof d.scores!=='object')d.scores={};
   if(typeof d.cut!=='number')d.cut=25;
+  if(typeof d.time!=='string')d.time='19:30';
   if(typeof d.tablesAuto!=='boolean')d.tablesAuto=true;
   (function(){var n=Math.min(MAXP,Math.max(d.teams.A.players.length,d.teams.B.players.length));['A','B'].forEach(function(t){var ps=d.teams[t].players;while(ps.length<n)ps.push({name:'',score:''});ps.length=n})})();
   MEMBERS.forEach(function(n){if(!d.scores[n])d.scores[n]=HANDI[n]});
@@ -386,6 +395,9 @@ function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(M
 function idx(t){return S.teams[t].players.map(function(_,i){return i})}
 function rankOrder(t){return shuffle(idx(t)).sort(function(x,y){return sc(P(t,y))-sc(P(t,x))})}
 function p80(v){var n=parseInt(v,10);return n>0?String(Math.round(n*0.8)):'–'}
+function fmtTime(t){if(!/^\d{2}:\d{2}/.test(t||''))return'';var h=+t.slice(0,2);return (h<12?'오전 ':'오후 ')+((h%12)||12)+':'+t.slice(3,5)}
+function fmtDateLong(d){if(!d)return'';var w='일월화수목금토'[new Date(d+'T00:00:00').getDay()];return d.replace(/-/g,'. ')+(w?'('+w+'요일)':'')}
+function fmtWhen(){var t=fmtTime(S.time);return fmtDate(S.date)+(t?' '+t:'')}
 function fmtDate(d){if(!d)return'';var w='일월화수목금토'[new Date(d+'T00:00:00').getDay()];return d.replace(/-/g,'.')+(w?'('+w+')':'')}
 function invalidate(){S.matches=null}
 function toast(msg){var t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove('show')},2200)}
@@ -533,7 +545,7 @@ function canGo(s){if(s<=2)return true;if(!validate().ok)return false;return s===
 function renderRail(){
   $('#rail').innerHTML=STEPS.map(function(n,i){var s=i+1,c=s===S.step?'cur':s<S.step?'done':'';
     return '<button type="button" class="stp '+c+'" data-act="go" data-s="'+s+'" '+(canGo(s)?'':'disabled')+' aria-current="'+(s===S.step?'step':'false')+'"><i class="dia"></i><span>'+n+'</span></button>'}).join('');
-  $('#vsline').innerHTML='<b>'+tnh('A')+'</b> vs <b>'+tnh('B')+'</b> · '+esc(fmtDate(S.date));
+  $('#vsline').innerHTML='<b>'+tnh('A')+'</b> vs <b>'+tnh('B')+'</b> · '+esc(fmtWhen());
 }
 function stepper(small){var n=cnt('A');return '<div class="stepper'+(small?' sm':'')+'">'+
   '<button type="button" class="sbtn" data-act="cnt" data-d="-1" '+(n<=1?'disabled':'')+' aria-label="양 팀 출전 인원 줄이기">−</button>'+
@@ -552,7 +564,10 @@ function numStep(k,min,max,unit){var n=S[k];return '<div class="stepper">'+
 
 function step1(){
   return '<section class="panel"><h2 class="h">팀 설정</h2>'+
-  '<label class="fld"><span>경기 날짜</span><input id="date" type="date" value="'+esc(S.date)+'"></label>'+
+  '<div class="fld"><span>경기 날짜 · 시간</span><div class="dt">'+
+    '<label class="dtp"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><b id="dtD">'+esc(fmtDateLong(S.date))+'</b><input id="date" type="date" value="'+esc(S.date)+'" aria-label="경기 날짜"></label>'+
+    '<label class="dtp t"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><b id="dtT">'+esc(fmtTime(S.time))+'</b><input id="time" type="time" step="300" value="'+esc(S.time)+'" aria-label="경기 시간"></label>'+
+  '</div></div>'+
   '<div class="teams">'+['A','B'].map(function(t){return '<div class="tcard"><div class="tlabel"><span class="tag t'+t+'">'+t+'</span>'+(t==='A'?'우리 팀':'상대 팀')+'</div>'+
     '<label class="fld"><span>팀 이름</span><input type="text" class="tn'+t+'" id="tname-'+t+'" data-tname="'+t+'" value="'+esc(S.teams[t].name)+'" maxlength="20" placeholder="'+(t==='A'?'더 브릿지(The Bridge)':'국제(Team. KUKJE)')+'"></label></div>'}).join('')+'</div></section>';
 }
@@ -666,7 +681,7 @@ function step4(){
   var g=games(),byes=S.matches.filter(function(m){return m.bye}),maxR=g.reduce(function(a,m){return Math.max(a,m.round)},0);
   var hot=g.filter(function(m){return Math.abs(sc(P('A',m.A))-sc(P('B',m.B)))>=S.warn}).length;
   var h='<div class="board" id="board">'+boardHTML()+'</div>'+
-  '<section class="panel"><div class="meta"><span><b>'+esc(fmtDate(S.date))+'</b></span><span>'+MODE[S.mode]+' 매칭</span><span>테이블 '+S.tables+'대</span><span>'+g.length+'경기'+(maxR>1?' · '+maxR+'라운드':'')+'</span>'+(hot?'<span style="color:var(--gold-hi)">점수 차 '+S.warn+'점 이상 '+hot+'경기</span>':'')+'</div>'+
+  '<section class="panel"><div class="meta"><span><b>'+esc(fmtWhen())+'</b></span><span>'+MODE[S.mode]+' 매칭</span><span>테이블 '+S.tables+'대</span><span>'+g.length+'경기'+(maxR>1?' · '+maxR+'라운드':'')+'</span>'+(hot?'<span style="color:var(--gold-hi)">점수 차 '+S.warn+'점 이상 '+hot+'경기</span>':'')+'</div>'+
   '<div class="cfg no-print"><div class="fld"><span>테이블 수 (바꾸면 재배정) '+tblNote()+'</span>'+numStep('tables',1,MAXP,'대')+'</div><div class="fld"><span>점수 차 경고 기준</span>'+numStep('warn',1,20,'점 이상')+'</div></div></section>';
   if(g.length)h+='<p class="winhint no-print">선수를 누르면 승자로 표시되고, 다시 누르면 해제됩니다.</p>';
   for(var r=1;r<=maxR;r++){
@@ -715,7 +730,7 @@ function render(scrollTop){
 function shareText(){
   function tn(t){return (t==='A'?'🟡':'🟢')+(S.teams[t].name.trim()||t+'팀')}
   var g=games(),byes=S.matches.filter(function(m){return m.bye}),maxR=g.reduce(function(a,m){return Math.max(a,m.round)},0),t=tally();
-  var L=['🎱 '+tn('A')+' vs '+tn('B')+' 교류전 대진표 ('+fmtDate(S.date)+')'],cur=0;
+  var L=['🎱 '+tn('A')+' vs '+tn('B')+' 교류전 대진표 ('+fmtWhen()+')'],cur=0;
   g.forEach(function(m){
     if(maxR>1&&m.round!==cur){cur=m.round;L.push('','['+cur+'라운드]')}
     var A=P('A',m.A),B=P('B',m.B);
@@ -1034,6 +1049,7 @@ var BGM=(function(){
 })();
 act.bgm=function(){BGM.toggle()};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-act]');if(!b||b.disabled)return;var f=act[b.dataset.act];if(f)f(b)});
+document.addEventListener('click',function(e){var i=e.target.closest&&e.target.closest('.dtp input');if(i&&i.showPicker)try{i.showPicker()}catch(_){}});
 document.addEventListener('input',function(e){var el=e.target;
   if(el.dataset.f){var p=P(el.dataset.t,+el.dataset.i),f=el.dataset.f,v=el.value;
     if(f==='score'){v=v.replace(/[^\d]/g,'').slice(0,2);if(v!==el.value)el.value=v}
@@ -1044,7 +1060,8 @@ document.addEventListener('input',function(e){var el=e.target;
     if(el.dataset.t==='B'&&f==='name'){var ps=$('#ps-B');if(ps)ps.outerHTML=pasteSum('B')}
     invalidate();refreshValidation();renderRail();save();return}
   if(el.dataset.tname){S.teams[el.dataset.tname].name=el.value;renderRail();save();return}
-  if(el.id==='date'){S.date=el.value;renderRail();save()}
+  if(el.id==='date'){if(!el.value){el.value=S.date;return}S.date=el.value;$('#dtD').textContent=fmtDateLong(S.date);renderRail();save()}
+  if(el.id==='time'){if(!el.value){el.value=S.time;return}S.time=el.value;$('#dtT').textContent=fmtTime(S.time);renderRail();save()}
 });
 document.addEventListener('change',function(e){var el=e.target;if(el.dataset.ms){ensureManual();S.manual[+el.dataset.i][el.dataset.ms]=el.value;invalidate();render()}});
 
