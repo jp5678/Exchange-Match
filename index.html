@@ -149,8 +149,8 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .opt b{display:block;font-size:15px}
 .opt small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
 .cfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.pchip{min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line-2);background:var(--bg);font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:6px} /* 모든 회원 버튼을 같은 폭으로 */
+.pchip{height:36px;min-width:0;padding:0 8px;border-radius:999px;border:1px solid var(--line-2);background:var(--bg);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;overflow:hidden}
 .pchip small{font-family:var(--f-num);font-size:11px;color:var(--muted)}
 .pchip.on{background:var(--gold-grad);border-color:var(--gold);color:var(--gold-ink);font-weight:700}
 .pchip small{display:inline-flex;align-items:baseline;gap:3px}
