@@ -185,8 +185,11 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .htab.mem{min-width:360px}
 .evs{display:flex;flex-direction:column;gap:8px}
 .ev{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.ev.ing{border-color:rgba(230,195,92,.45);box-shadow:inset 4px 0 0 var(--gold-hi)} /* 진행 중 기록 */
+h3.round .cnt{font-weight:500;letter-spacing:0;color:var(--muted);font-size:12px;margin-left:4px}
 .ev summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:12px 14px;min-height:56px}
 .ev summary::-webkit-details-marker{display:none}
+@media (max-width:520px){.ev summary{grid-template-columns:minmax(0,1fr) auto}.evd{grid-column:1/-1}} /* 좁은 화면: 날짜·시간은 윗줄, 팀 이름에 폭 확보 */
 .evd{font-family:var(--f-num);font-size:12px;color:var(--muted)}
 .evt{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .evs2{display:flex;align-items:center;gap:8px}
@@ -287,6 +290,7 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .mbox textarea{min-height:200px;font-size:13px}
 .mact{display:flex;gap:8px}
 .mact .btn{flex:1}
+.autos b{color:var(--ok);font-weight:700}
 .upd{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:12px;background:#e9edf0;color:#0b1016;font-size:14px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.45);white-space:nowrap}
 .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(10px);opacity:0;z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -353,7 +357,7 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 (function(){
 'use strict';
 var KEY='cushion-xmatch-v2';
-var BUILD='2026-10-18.3'; /* 배포마다 바꿈: 서버의 최신 값과 다르면 새로고침 안내 */
+var BUILD='2026-10-18.4'; /* 배포마다 바꿈: 서버의 최신 값과 다르면 새로고침 안내 */
 var RESET_ON_START=true; /* 시작할 때마다 진행 상태를 비움. 이력(LKEY/DB)은 건드리지 않음 */
 var MAXP=20;
 var HANDI={'강병호':'23','정종필':'24','정덕영':'25','고재건':'30','선명':'25','김영록':'23','최충광':'28','방성두':'30','최충엽':'26','황주안':'25','김재하':'28','현광렬':'22','오승준':'28','선명관':'32','한용간':'24'};
@@ -718,7 +722,7 @@ function step4(){
     (S.mode==='rank'&&hasTies()?'<button type="button" class="btn felt" data-act="reshuffle">동점자 순서 다시 섞기</button>':'')+
     (hasResults()?'<button type="button" class="btn ghost" data-act="clearResults">승패 입력 지우기</button>':'')+
     '<button type="button" class="btn gold" data-act="saveHist">이력 저장</button></div>'+
-    (S.savedId?'<p class="hint no-print" style="text-align:center">이력에 저장된 교류전입니다. 승패를 입력하면 이력도 <b>자동으로 업데이트</b>됩니다.</p>':'<p class="hint no-print" style="text-align:center">결과 입력을 마치면 이력에 저장해 두세요. 다음 교류전 준비에 쓸 수 있습니다.</p>');
+    (S.savedId?'<p class="hint no-print autos" style="text-align:center"><b id="autoSaved">'+autoLabel()+'</b> · 승패를 입력하면 이력도 자동으로 업데이트됩니다.</p>':'<p class="hint no-print" style="text-align:center">결과 입력을 마치면 이력에 저장해 두세요. 다음 교류전 준비에 쓸 수 있습니다.</p>');
   return h;
 }
 function renderBar(){
@@ -823,22 +827,27 @@ function historyView(){
     names.map(function(n){var x=mem[n],g=x.w+x.l;return '<div class="hrow"><span>'+esc(n)+'</span><b>'+(x.last||'-')+'</b><b>'+x.ev+'</b><b class="cw">'+x.w+'</b><b class="cl">'+x.l+'</b><b>'+(g?Math.round(x.w/g*100)+'%':'-')+'</b><b>'+x.bye+'</b></div>'}).join('')+
     '</div></div><p class="hint">승률은 실제 치른 경기만으로 계산합니다(부전승 제외). 핸디는 가장 최근 교류전 기준입니다.</p></section>';
   /* events */
-  h+='<h3 class="round">교류전 기록</h3><div class="evs">'+HIST.map(function(r){var o=outcome(r);
-    return '<details class="ev" data-id="'+esc(r.id)+'"'+(openEv[r.id]?' open':'')+'><summary><span class="evd">'+esc(recWhen(r))+'</span><span class="evt">'+esc(r.teamA)+' vs '+esc(r.teamB)+'</span><span class="evs2"><b>'+r.a+' : '+r.b+'</b><i class="res '+o.k+'">'+o.l+'</i></span></summary>'+
+  function evItem(r){var o=outcome(r);
+    return '<details class="ev '+(o.k==='ing'?'ing':'fin')+'" data-id="'+esc(r.id)+'"'+(openEv[r.id]?' open':'')+'><summary><span class="evd">'+esc(recWhen(r))+'</span><span class="evt">'+esc(r.teamA)+' vs '+esc(r.teamB)+'</span><span class="evs2"><b>'+r.a+' : '+r.b+'</b><i class="res '+o.k+'">'+o.l+(o.k==='ing'?' '+r.done+'/'+r.total:'')+'</i></span></summary>'+
       '<div class="evb"><div class="meta"><span>'+(MODE[r.mode]||'')+' 매칭</span>'+(r.mode==='rank'?'<span>경계 '+r.cut+'점</span>':'')+'<span>'+r.total+'경기 · 입력 '+r.done+'</span>'+(r.ba||r.bb?'<span>부전승 '+r.ba+' : '+r.bb+'</span>':'')+'</div>'+
       (r.hasG?'<div class="meta"><span>'+(r.cut+1)+'점 이상 <b>'+r.hiA+' : '+r.hiB+'</b></span><span>'+r.cut+'점 이하 <b>'+r.loA+' : '+r.loB+'</b></span></div>':'')+
       '<div class="glist">'+(r.games||[]).map(function(g){return '<div class="gl"><span class="gn"'+(g.r>1?' title="'+g.r+'라운드"':'')+'>'+gLabel(g)+'</span><span class="'+(g.w==='A'?'gw':g.w?'gx':'')+'">'+esc(g.a)+' <small>'+g.as+'</small></span><span class="gv">vs</span><span class="'+(g.w==='B'?'gw':g.w?'gx':'')+'">'+esc(g.b)+' <small>'+g.bs+'</small></span></div>'}).join('')+'</div>'+
       ((r.byes||[]).length?'<p class="hint">부전승: '+r.byes.map(function(b){return esc(b.n)+'('+b.s+', '+esc(b.t==='A'?r.teamA:r.teamB)+')'}).join(', ')+'</p>':'')+
-      '<div class="mtools"><button type="button" class="btn xs felt" data-act="loadRoster" data-id="'+esc(r.id)+'">이 출전자로 새 교류전 준비</button><button type="button" class="btn xs ghost" data-act="expOne" data-f="pdf" data-id="'+esc(r.id)+'">PDF</button><button type="button" class="btn xs danger" data-act="delHist" data-id="'+esc(r.id)+'">기록 삭제</button></div></div></details>'}).join('')+'</div>';
+      '<div class="mtools"><button type="button" class="btn xs felt" data-act="loadRoster" data-id="'+esc(r.id)+'">이 출전자로 새 교류전 준비</button><button type="button" class="btn xs ghost" data-act="expOne" data-f="pdf" data-id="'+esc(r.id)+'">PDF</button><button type="button" class="btn xs danger" data-act="delHist" data-id="'+esc(r.id)+'">기록 삭제</button></div></div></details>'}
+  /* 진행 중(결과 입력이 덜 끝남)과 완료를 나눠 표시 */
+  var ing=HIST.filter(function(r){return outcome(r).k==='ing'}),fin=HIST.filter(function(r){return outcome(r).k!=='ing'});
+  if(ing.length)h+='<h3 class="round">진행 중 <small class="cnt">'+ing.length+'건</small></h3><div class="evs">'+ing.map(evItem).join('')+'</div>';
+  if(fin.length)h+='<h3 class="round">완료 <small class="cnt">'+fin.length+'건</small></h3><div class="evs">'+fin.map(evItem).join('')+'</div>';
   return h;
 }
 /* 이력 저장: 처음이면 새 기록, 이미 저장한 교류전이면 같은 기록을 갱신. quiet=true는 승패 입력 시 자동 갱신(알림 없음) */
 var syncT=null;
+function autoLabel(){var d=new Date(S.savedAt||Date.now());return '✓ 이력 자동 저장됨 '+fmtTime(String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))}
 function syncHist(){if(!S.savedId)return;clearTimeout(syncT);syncT=setTimeout(function(){saveHistory(true)},600)}
 function saveHistory(quiet){
   if(saving||!S.matches)return;saving=true;
   var upd=!!S.savedId,rec=buildRecord(),id=S.savedId||(String(S.date||today())+'_'+Math.random().toString(36).slice(2,8));
-  function done(ok,msg){saving=false;if(ok){S.savedId=id;save();if(!quiet&&VIEW!=='history')render()}if(!quiet||!ok)toast(msg)}
+  function done(ok,msg){saving=false;if(ok){S.savedId=id;S.savedAt=Date.now();save();var el=$('#autoSaved');if(el)el.textContent=autoLabel();if(!quiet&&VIEW!=='history')render()}if(!quiet||!ok)toast(msg)}
   function local(){var a=localHist().filter(function(x){return x.id!==id});rec.id=id;a.push(rec);
     if(setLocalHist(a)){HIST=sortHist(a);done(true,upd?'이력을 업데이트했습니다':'이 기기에 이력을 저장했습니다')}else done(false,'저장 공간을 쓸 수 없어 이력을 저장하지 못했습니다')}
   if(DB){DB.collection('events').doc(id).set(rec).then(function(){done(true,upd?'이력을 업데이트했습니다':'이력에 저장했습니다')},function(e){
