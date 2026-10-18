@@ -347,10 +347,12 @@ var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){r
 var STEPS=['팀 설정','선수 입력','매칭','대진표'];
 var storageOK=true, tried=false;
 
-/* 경기 시간은 10분 단위: 현재 시각은 10분 단위로 내림(반올림하면 23:55가 다음 날로 넘어감) */
-function snap10(t){var m=/^(\d{2}):(\d{2})/.exec(t||'');if(!m)return '';return m[1]+':'+String(Math.floor(+m[2]/10)*10).padStart(2,'0')}
-function nowTime(){var d=new Date();return snap10(String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))}
-function timeOpts(cur){var o='';for(var h=0;h<24;h++)for(var m=0;m<60;m+=10){var v=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');o+='<option value="'+v+'"'+(v===cur?' selected':'')+'>'+fmtTime(v)+'</option>'}return o}
+/* 경기 시간: 기본값은 현재 시각 그대로, 선택 목록은 30분 단위. 목록에 없는 현재 시각은 제자리에 한 항목으로 끼워 선택 상태를 유지 */
+function hhmm(t){var m=/^(\d{2}):(\d{2})/.exec(t||'');return m&&+m[1]<24&&+m[2]<60?m[1]+':'+m[2]:''}
+function nowTime(){var d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function timeOpts(cur){var vs=[];for(var h=0;h<24;h++)for(var m=0;m<60;m+=30)vs.push(String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'));
+  if(cur&&vs.indexOf(cur)<0){vs.push(cur);vs.sort()}
+  return vs.map(function(v){return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+fmtTime(v)+'</option>'}).join('')}
 function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function blank(n){var a=[];for(var i=0;i<n;i++)a.push({name:'',score:''});return a}
 function fromPairs(arr){return arr.map(function(x){return {name:x[0],score:String(x[1])}})}
@@ -367,7 +369,7 @@ function load(){
   if(d.step===4&&!d.matches)d.step=3;
   if(!d.scores||typeof d.scores!=='object')d.scores={};
   if(typeof d.cut!=='number')d.cut=25;
-  d.time=snap10(d.time)||nowTime();
+  d.time=hhmm(d.time)||nowTime();
   if(typeof d.tablesAuto!=='boolean')d.tablesAuto=true;
   (function(){var n=Math.min(MAXP,Math.max(d.teams.A.players.length,d.teams.B.players.length));['A','B'].forEach(function(t){var ps=d.teams[t].players;while(ps.length<n)ps.push({name:'',score:''});ps.length=n})})();
   MEMBERS.forEach(function(n){if(!d.scores[n])d.scores[n]=HANDI[n]});
@@ -572,7 +574,7 @@ function step1(){
   return '<section class="panel"><h2 class="h">팀 설정</h2>'+
   '<div class="fld"><span>경기 날짜 · 시간</span><div class="dt">'+
     '<label class="dtp"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><b id="dtD">'+esc(fmtDateLong(S.date))+'</b><input id="date" type="date" value="'+esc(S.date)+'" aria-label="경기 날짜"></label>'+
-    '<label class="dtp t"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><b id="dtT">'+esc(fmtTime(S.time))+'</b><select id="time" aria-label="경기 시간 (10분 단위)">'+timeOpts(S.time)+'</select></label>'+
+    '<label class="dtp t"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><b id="dtT">'+esc(fmtTime(S.time))+'</b><select id="time" aria-label="경기 시간 (30분 단위)">'+timeOpts(S.time)+'</select></label>'+
   '</div></div>'+
   '<div class="teams">'+['A','B'].map(function(t){return '<div class="tcard"><div class="tlabel"><span class="tag t'+t+'">'+t+'</span>'+(t==='A'?'우리 팀':'상대 팀')+'</div>'+
     '<label class="fld"><span>팀 이름</span><input type="text" class="tn'+t+'" id="tname-'+t+'" data-tname="'+t+'" value="'+esc(S.teams[t].name)+'" maxlength="20" placeholder="'+(t==='A'?'더 브릿지(The Bridge)':'국제(Team. KUKJE)')+'"></label></div>'}).join('')+'</div></section>';
@@ -1069,9 +1071,9 @@ document.addEventListener('input',function(e){var el=e.target;
     invalidate();refreshValidation();renderRail();save();return}
   if(el.dataset.tname){S.teams[el.dataset.tname].name=el.value;renderRail();save();return}
   if(el.id==='date'){if(!el.value){el.value=S.date;return}S.date=el.value;$('#dtD').textContent=fmtDateLong(S.date);renderRail();save()}
-  if(el.id==='time'){var tv=snap10(el.value);if(!tv){el.value=S.time;return}S.time=tv;$('#dtT').textContent=fmtTime(S.time);renderRail();save()}
+  if(el.id==='time'){var tv=hhmm(el.value);if(!tv){el.value=S.time;return}S.time=tv;$('#dtT').textContent=fmtTime(S.time);renderRail();save()}
 });
-document.addEventListener('change',function(e){var el=e.target;if(el.id==='time'&&snap10(el.value)&&snap10(el.value)!==S.time){S.time=snap10(el.value);$('#dtT').textContent=fmtTime(S.time);renderRail();save();return}if(el.dataset.ms){ensureManual();S.manual[+el.dataset.i][el.dataset.ms]=el.value;invalidate();render()}});
+document.addEventListener('change',function(e){var el=e.target;if(el.id==='time'&&hhmm(el.value)&&hhmm(el.value)!==S.time){S.time=hhmm(el.value);$('#dtT').textContent=fmtTime(S.time);renderRail();save();return}if(el.dataset.ms){ensureManual();S.manual[+el.dataset.i][el.dataset.ms]=el.value;invalidate();render()}});
 
 render();
 BGM.ui();BGM.start();
