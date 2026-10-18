@@ -694,7 +694,7 @@ function card(m){
   function side(t,p){var w=m.winner===t,l=m.winner&&!w;
     return '<button type="button" class="side s'+t+(w?' win':'')+(l?' lose':'')+'" data-act="win" data-no="'+m.no+'" data-w="'+t+'" aria-pressed="'+w+'" aria-label="'+esc(p.name)+' 승리 입력"><span class="pname">'+esc(dn(p.name))+'</span><span class="pscore">'+sc(p)+'</span><span class="wtag">'+(w?'승':'탭하여 승 입력')+'</span></button>'}
   var ex=m.extra?'<span class="chip">'+esc(dn(P(m.extra,m[m.extra]).name))+' 2경기째</span>':'';
-  return '<article class="match'+(hot?' hot':'')+'" id="g'+m.no+'"><div class="mhead"><span class="mh-l">'+ex+'</span><span class="gno">'+m.no+'경기</span>'+
+  return '<article class="match'+(hot?' hot':'')+'" id="g'+m.no+'"><div class="mhead"><span class="mh-l">'+ex+'</span><span class="gno" title="'+m.no+'경기">Table '+m.table+'</span>'+
     '<span class="diff'+(hot?' hot':'')+'">점수 차 '+d+'</span></div><div class="mbody">'+side('A',A)+'<span class="vs">VS</span>'+side('B',B)+'</div></article>';
 }
 function step4(){
