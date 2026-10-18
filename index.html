@@ -47,7 +47,11 @@ h1{margin:2px 0 0;font-size:26px;font-weight:900;letter-spacing:-.02em;text-wrap
 .stp:disabled{cursor:default}
 .dia{width:14px;height:14px;transform:rotate(45deg);border:1.5px solid rgba(207,233,223,.45);background:var(--felt);transition:background .2s,border-color .2s}
 .stp.done .dia{background:var(--felt-ink);border-color:var(--felt-ink)}
-.stp.cur .dia{background:var(--gold-hi);border-color:var(--gold-hi);box-shadow:0 0 0 4px rgba(230,195,92,.22)}
+.stp.cur .dia{width:20px;height:20px;margin:-3px 0;transform:none;border:0;border-radius:50%; /* 현재 단계: 레일 다이아몬드 위의 노란 3쿠션 공 */
+  background:radial-gradient(circle at 34% 30%,#fffbe6 0 9%,#f6dc6a 24%,#d9a514 62%,#8c6406 100%);
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.45));animation:ballPulse 1.2s ease-in-out infinite}
+@keyframes ballPulse{0%,100%{box-shadow:0 0 0 0 rgba(230,195,92,0)}50%{box-shadow:0 0 0 6px rgba(230,195,92,.45)}}
+@media (prefers-reduced-motion:reduce){.stp.cur .dia{animation:none;box-shadow:0 0 0 4px rgba(230,195,92,.3)}}
 .stp span{font-size:12px;color:rgba(207,233,223,.6);white-space:nowrap}
 .stp.cur span{color:var(--ink);font-weight:700}
 .stp.done span{color:var(--felt-ink)}
