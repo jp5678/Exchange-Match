@@ -196,10 +196,10 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .res.lose{color:var(--danger);border-color:rgba(248,113,113,.45)}
 .evb{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
 .glist{display:flex;flex-direction:column;gap:2px;font-size:14px}
-.gl{display:grid;grid-template-columns:22px minmax(0,1fr) 24px minmax(0,1fr);gap:6px;align-items:center;padding:4px 0;border-bottom:1px dashed var(--line)}
+.gl{display:grid;grid-template-columns:60px minmax(0,1fr) 24px minmax(0,1fr);gap:6px;align-items:center;padding:4px 0;border-bottom:1px dashed var(--line)}
 .gl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gl small{font-family:var(--f-num);color:var(--muted);font-size:11px}
-.gn{font-family:var(--f-num);font-size:11px;color:var(--faint);text-align:right}
+.gn{font-family:var(--f-num);font-size:11px;color:var(--muted);text-align:left;white-space:nowrap}
 .gv{font-family:var(--f-num);font-size:10px;color:var(--faint);text-align:center}
 .gl span:last-child{text-align:right}
 .gw{color:var(--gold-hi);font-weight:700}.gx{color:var(--faint)}
@@ -825,7 +825,7 @@ function historyView(){
     return '<details class="ev" data-id="'+esc(r.id)+'"'+(openEv[r.id]?' open':'')+'><summary><span class="evd">'+esc(recWhen(r))+'</span><span class="evt">'+esc(r.teamA)+' vs '+esc(r.teamB)+'</span><span class="evs2"><b>'+r.a+' : '+r.b+'</b><i class="res '+o.k+'">'+o.l+'</i></span></summary>'+
       '<div class="evb"><div class="meta"><span>'+(MODE[r.mode]||'')+' 매칭</span>'+(r.mode==='rank'?'<span>경계 '+r.cut+'점</span>':'')+'<span>'+r.total+'경기 · 입력 '+r.done+'</span>'+(r.ba||r.bb?'<span>부전승 '+r.ba+' : '+r.bb+'</span>':'')+'</div>'+
       (r.hasG?'<div class="meta"><span>'+(r.cut+1)+'점 이상 <b>'+r.hiA+' : '+r.hiB+'</b></span><span>'+r.cut+'점 이하 <b>'+r.loA+' : '+r.loB+'</b></span></div>':'')+
-      '<div class="glist">'+(r.games||[]).map(function(g){return '<div class="gl"><span class="gn">'+g.no+'</span><span class="'+(g.w==='A'?'gw':g.w?'gx':'')+'">'+esc(g.a)+' <small>'+g.as+'</small></span><span class="gv">vs</span><span class="'+(g.w==='B'?'gw':g.w?'gx':'')+'">'+esc(g.b)+' <small>'+g.bs+'</small></span></div>'}).join('')+'</div>'+
+      '<div class="glist">'+(r.games||[]).map(function(g){return '<div class="gl"><span class="gn"'+(g.r>1?' title="'+g.r+'라운드"':'')+'>'+gLabel(g)+'</span><span class="'+(g.w==='A'?'gw':g.w?'gx':'')+'">'+esc(g.a)+' <small>'+g.as+'</small></span><span class="gv">vs</span><span class="'+(g.w==='B'?'gw':g.w?'gx':'')+'">'+esc(g.b)+' <small>'+g.bs+'</small></span></div>'}).join('')+'</div>'+
       ((r.byes||[]).length?'<p class="hint">부전승: '+r.byes.map(function(b){return esc(b.n)+'('+b.s+', '+esc(b.t==='A'?r.teamA:r.teamB)+')'}).join(', ')+'</p>':'')+
       '<div class="mtools"><button type="button" class="btn xs felt" data-act="loadRoster" data-id="'+esc(r.id)+'">이 출전자로 새 교류전 준비</button><button type="button" class="btn xs ghost" data-act="expOne" data-f="docx" data-id="'+esc(r.id)+'">Word</button><button type="button" class="btn xs ghost" data-act="expOne" data-f="pdf" data-id="'+esc(r.id)+'">PDF</button><button type="button" class="btn xs danger" data-act="delHist" data-id="'+esc(r.id)+'">기록 삭제</button></div></div></details>'}).join('')+'</div>';
   return h;
@@ -861,9 +861,10 @@ function recWhen(r){var t=fmtTime(r.time);return fmtDate(r.date)+(t?' '+t:'')} /
 function evTitle(r){var o=outcome(r);return recWhen(r)+'  '+r.teamA+' vs '+r.teamB+'  '+r.a+' : '+r.b+' ('+o.l+')'}
 function evMeta(r){var a=[(MODE[r.mode]||'')+' 매칭'];if(r.mode==='rank')a.push('그룹 경계 '+r.cut+'점');a.push(r.total+'경기 (입력 '+r.done+')');if(r.ba||r.bb)a.push('부전승 '+r.ba+' : '+r.bb);
   if(r.hasG)a.push((r.cut+1)+'점 이상 '+r.hiA+' : '+r.hiB+' / '+r.cut+'점 이하 '+r.loA+' : '+r.loB);return a.join(' · ')}
-function gameRows(r){return (r.games||[]).map(function(g){return [g.no+'경기',String(g.t)+(g.r>1?' ('+g.r+'라운드)':''),g.a,String(g.as),g.b,String(g.bs),g.w==='A'?g.a:g.w==='B'?g.b:'-']})}
+function gLabel(g){return g.t?'Table '+g.t:g.no+'경기'} /* 테이블 번호가 없는 아주 오래된 기록은 경기 번호로 */
+function gameRows(r){return (r.games||[]).map(function(g){return [gLabel(g),(g.r||1)+'라운드',g.a,String(g.as),g.b,String(g.bs),g.w==='A'?g.a:g.w==='B'?g.b:'-']})}
 function byeText(r){return (r.byes||[]).map(function(b){return b.n+'('+b.s+', '+(b.t==='A'?r.teamA:r.teamB)+')'}).join(', ')}
-var GH=['경기','테이블','A팀 선수','핸디','B팀 선수','핸디','승자'];
+var GH=['Table','라운드','A팀 선수','핸디','B팀 선수','핸디','승자'];
 
 /* DOCX */
 function xe(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -926,7 +927,7 @@ function pdfBlocks(recs,full){
 }
 var RP_CSS='.rp{width:760px;background:#fff;color:#111;font-family:var(--f-body);font-size:13px;line-height:1.5}.rp>div{padding:6px 0}'+
  '.rp-h{border-bottom:3px solid #0a3d31;padding-bottom:10px!important}.rp-eb{font-family:var(--f-num);font-size:10px;letter-spacing:.18em;color:#b45309}.rp h1{margin:2px 0;font-size:24px;font-weight:900;color:#0a3d31}.rp-h p{margin:0;color:#555;font-size:12px}'+
- '.rp h2{margin:10px 0 6px;font-size:16px;color:#b45309}.rp table{width:100%;border-collapse:collapse;font-size:12px}.rp th{background:#0a3d31;color:#fff;font-weight:700;padding:5px 6px}.rp td{border:1px solid #c9cfd4;padding:4px 6px}'+
+ '.rp h2{margin:10px 0 6px;font-size:16px;color:#b45309}.rp table{width:100%;border-collapse:collapse;font-size:12px}.rp table.games{display:table}.rp th{background:#0a3d31;color:#fff;font-weight:700;padding:5px 6px}.rp td{border:1px solid #c9cfd4;padding:4px 6px}'+
  '.rp table.num td:not(:first-child){text-align:center;font-family:var(--f-num)}.rp table.games td:nth-child(1),.rp table.games td:nth-child(2),.rp table.games td:nth-child(4),.rp table.games td:nth-child(6){text-align:center;font-family:var(--f-num)}'+
  '.rp-n{margin:4px 0 0;font-size:11px;color:#666}.rp-ev{border-top:1px solid #ddd}.rp h3{margin:6px 0 2px;font-size:14px;display:flex;gap:10px;align-items:center}.rp h3 span{flex:1}.rp h3 b{font-family:var(--f-num)}'+
  '.rp h3 i{font-style:normal;font-size:11px;border:1px solid #999;border-radius:4px;padding:0 6px}.rp h3 i.win{background:#d97706;border-color:#d97706;color:#fff}.rp h3 i.lose{color:#b91c1c;border-color:#b91c1c}.rp-m{margin:2px 0 6px;font-size:11px;color:#444}';
@@ -951,6 +952,7 @@ function buildPdf(recs,full){
   });
 }
 function safeName(s){return String(s).replace(/[\\\/:*?"<>|]+/g,'').replace(/\s+/g,' ').trim()}
+function saveLocal(blob,name){try{var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);toast('파일을 저장했습니다 (다운로드 폴더)')}catch(e){toast('파일을 저장하지 못했습니다')}}
 function exportFile(fmt,recs,full){
   if(exporting)return;if(!recs.length){toast('내보낼 기록이 없습니다');return}
   exporting=true;toast((fmt==='pdf'?'PDF':'Word')+' 파일을 만드는 중입니다');
@@ -958,7 +960,7 @@ function exportFile(fmt,recs,full){
   var name=full?'교류전이력_'+safeName(recs[0].teamA||tn('A'))+'_'+today():'교류전결과_'+recs[0].date+'_'+safeName(recs[0].teamA)+'_vs_'+safeName(recs[0].teamB);
   name=name.replace(/ /g,'')+'.'+fmt;
   Promise.all([dlP,(fmt==='pdf'?buildPdf:buildDocx)(recs,full)]).then(function(res){var dl=res[0],blob=res[1];
-    if(!dl){exporting=false;toast('이 화면에서는 파일 저장을 지원하지 않습니다. claude.ai에서 아티팩트를 열어 주세요');return}
+    if(!dl){exporting=false;saveLocal(blob,name);return} /* 일반 웹(GitHub Pages 등): 브라우저 다운로드로 저장 */
     return dl.save({filename:name,data:blob}).then(function(r){exporting=false;if(r&&r.status==='saved')toast('파일을 저장했습니다')},function(e){exporting=false;var c2=e&&e.code;
       if(c2==='declined')return;if(c2==='rate_limited')toast('저장 창이 이미 열려 있습니다');else if(c2==='extension_not_enabled')toast('이 화면에서는 '+fmt.toUpperCase()+' 저장을 쓸 수 없습니다');else toast('파일을 저장하지 못했습니다')});
   }).catch(function(){exporting=false;toast('파일을 만들지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요')});
