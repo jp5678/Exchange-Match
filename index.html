@@ -755,7 +755,7 @@ function shareText(){
   g.forEach(function(m){
     if(maxR>1&&m.round!==cur){cur=m.round;L.push('','['+cur+'라운드]')}
     var A=P('A',m.A),B=P('B',m.B);
-    var s=m.no+'경기 '+dn(A.name)+'('+sc(A)+') vs '+dn(B.name)+'('+sc(B)+')';
+    var s='Table '+m.table+' '+dn(A.name)+'('+sc(A)+') vs '+dn(B.name)+'('+sc(B)+')';
     if(m.winner)s+=' → '+dn((m.winner==='A'?A:B).name)+' 승';
     L.push(s);
   });
