@@ -259,6 +259,7 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .bye em{font-style:normal;color:var(--muted);font-size:12px}
 .acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .foot{font-size:12px;color:var(--faint);text-align:center;padding:4px 0 8px}
+.copy{margin:4.5em 0 0;font-size:12px;letter-spacing:.06em;color:var(--muted);text-align:center} /* 안내 문구 3~4줄 아래 제작자 표시 */
 
 /* Bottom bar */
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);
@@ -315,7 +316,8 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
   </header>
   <nav class="rail" id="rail" aria-label="진행 단계"></nav>
   <main id="main" class="app" style="gap:16px"></main>
-  <p class="foot no-print">점수는 각 선수의 기준 득점(핸디)입니다. 입력값은 프로그램을 다시 열면 초기화됩니다(교류전 이력은 유지).</p>
+  <p class="foot no-print">핸디는 각 선수의 기준 득점입니다. 입력값은 프로그램을 다시 열면 초기화됩니다(교류전 이력은 유지).</p>
+  <p class="copy">Made by VULCAN · © 2026</p>
 </div>
 
 <div class="bar" id="bar"><div class="in" id="barIn"></div></div>
