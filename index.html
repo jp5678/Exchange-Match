@@ -23,7 +23,7 @@
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 128px;-webkit-tap-highlight-color:transparent}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
-.app{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.app{width:100%;max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px} /* width:100%: margin:auto로 늘어나지 않으면 넓은 표가 #main을 화면 밖으로 밀어냄 */
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--gold-hi);outline-offset:2px}
 
@@ -1038,7 +1038,8 @@ var BGM=(function(){
     var p=ctx.resume();if(p&&p.then)p.then(run,function(){});else run();ui()}
   function ui(){var b=document.getElementById('bgmBtn');if(!b)return;b.setAttribute('aria-pressed',String(on));b.textContent=on?'♪ 켜짐':'♪ 꺼짐';var wait=on&&!timer;b.classList.toggle('pending',wait);b.title=wait?'화면을 탭하면 배경음악이 재생됩니다':'';b.hidden=!AC}
   function unlock(e){if(!timer&&!(e.target.closest&&e.target.closest('#bgmBtn')))start()}
-  ['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,unlock,{capture:true,passive:true})});
+  /* 터치는 손을 뗄 때(pointerup/touchend/click)만 소리 허용으로 인정하는 브라우저(iOS Safari 등)가 있어 함께 감지 */
+  ['pointerdown','pointerup','touchend','click','keydown'].forEach(function(ev){document.addEventListener(ev,unlock,{capture:true,passive:true})});
   document.addEventListener('visibilitychange',function(){if(document.hidden){if(timer)halt()}else start()});
   /* 승 입력 효과음: A 승=상승 팡파르, B 승=하강 두 음, 취소=짧은 클릭. BGM을 끄면 함께 끔 */
   function sfx(w){if(!on||!ctx||ctx.state!=='running')return;var t=ctx.currentTime+0.01;
@@ -1049,7 +1050,8 @@ var BGM=(function(){
 })();
 act.bgm=function(){BGM.toggle()};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-act]');if(!b||b.disabled)return;var f=act[b.dataset.act];if(f)f(b)});
-document.addEventListener('click',function(e){var i=e.target.closest&&e.target.closest('.dtp input');if(i&&i.showPicker)try{i.showPicker()}catch(_){}});
+/* 데스크톱(마우스)에서는 칸 어디를 눌러도 선택기를 열고, 터치 기기는 기본 동작(탭하면 선택기)에 맡김 */
+document.addEventListener('click',function(e){var i=e.target.closest&&e.target.closest('.dtp input');if(i&&i.showPicker&&matchMedia('(pointer:fine)').matches)try{i.showPicker()}catch(_){}});
 document.addEventListener('input',function(e){var el=e.target;
   if(el.dataset.f){var p=P(el.dataset.t,+el.dataset.i),f=el.dataset.f,v=el.value;
     if(f==='score'){v=v.replace(/[^\d]/g,'').slice(0,2);if(v!==el.value)el.value=v}
