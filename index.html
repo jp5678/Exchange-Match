@@ -259,7 +259,9 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
 .bye em{font-style:normal;color:var(--muted);font-size:12px}
 .acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .foot{font-size:12px;color:var(--faint);text-align:center;padding:4px 0 8px}
-.copy{margin:4.5em 0 0;font-size:12px;letter-spacing:.06em;color:var(--muted);text-align:center} /* 안내 문구 3~4줄 아래 제작자 표시 */
+.docs{display:flex;justify-content:center;gap:10px;margin:2.2em 0 0;font-size:13px;color:var(--faint)}
+.docs a{color:var(--gold-hi);text-decoration:underline;text-underline-offset:3px;padding:6px 2px}
+.copy{margin:2.2em 0 0;font-size:12px;letter-spacing:.06em;color:var(--muted);text-align:center} /* 안내 문구 3~4줄 아래 제작자 표시 */
 
 /* Bottom bar */
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);
@@ -317,6 +319,7 @@ input.err,select.err{border-color:var(--danger);background:var(--danger-bg)}
   <nav class="rail" id="rail" aria-label="진행 단계"></nav>
   <main id="main" class="app" style="gap:16px"></main>
   <p class="foot no-print">핸디는 각 선수의 기준 득점입니다. 입력값은 프로그램을 다시 열면 초기화됩니다(교류전 이력은 유지).</p>
+  <p class="docs no-print"><a href="docs/quick-guide.pdf" target="_blank" rel="noopener">빠른 사용 안내</a><span aria-hidden="true">·</span><a href="docs/manual.pdf" target="_blank" rel="noopener">사용 매뉴얼 (PDF)</a></p>
   <p class="copy">Made by VULCAN · © 2026</p>
 </div>
 
@@ -352,7 +355,7 @@ function hhmm(t){var m=/^(\d{2}):(\d{2})/.exec(t||'');return m&&+m[1]<24&&+m[2]<
 function nowTime(){var d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 function timeOpts(cur){var vs=[];for(var h=0;h<24;h++)for(var m=0;m<60;m+=30)vs.push(String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'));
   if(cur&&vs.indexOf(cur)<0){vs.push(cur);vs.sort()}
-  return vs.map(function(v){return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+fmtTime(v)+'</option>'}).join('')}
+  return vs.map(function(v){return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+fmtTime(v)+(+v.slice(3)%30?' (현재)':'')+'</option>'}).join('')}
 function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function blank(n){var a=[];for(var i=0;i<n;i++)a.push({name:'',score:''});return a}
 function fromPairs(arr){return arr.map(function(x){return {name:x[0],score:String(x[1])}})}
@@ -758,7 +761,7 @@ var VIEW='main',DB=null,HIST=[],histMode='loading',saving=false,openEv={};
 var LKEY='cushion-xmatch-history-v1';
 function localHist(){try{var a=JSON.parse(localStorage.getItem(LKEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
 function setLocalHist(a){try{localStorage.setItem(LKEY,JSON.stringify(a));return true}catch(e){return false}}
-function sortHist(a){return a.slice().sort(function(x,y){return String(y.date).localeCompare(String(x.date))||(y.savedAt||0)-(x.savedAt||0)})}
+function sortHist(a){return a.slice().sort(function(x,y){return String(y.date).localeCompare(String(x.date))||String(y.time||'').localeCompare(String(x.time||''))||(y.savedAt||0)-(x.savedAt||0)})}
 function useLocal(){DB=null;histMode='local';HIST=sortHist(localHist());if(VIEW==='history')render()}
 (function initDb(){
   var c=window.claude;
@@ -778,7 +781,7 @@ document.addEventListener('toggle',function(e){var t=e.target;if(t&&t.classList&
 
 function buildRecord(){var t=tally(),now=Date.now();
   function pl(t2,i){var p=P(t2,i);return {n:p.name.trim(),s:sc(p)}}
-  return {date:S.date,savedAt:now,teamA:tn('A'),teamB:tn('B'),mode:S.mode,cut:S.cut,tables:S.tables,
+  return {date:S.date,time:S.time,savedAt:now,teamA:tn('A'),teamB:tn('B'),mode:S.mode,cut:S.cut,tables:S.tables,
     a:t.a,b:t.b,ba:t.ba,bb:t.bb,hasG:t.hasG,hiA:t.G.hi.a,hiB:t.G.hi.b,loA:t.G.lo.a,loB:t.G.lo.b,done:t.done,total:t.total,
     rosterA:S.teams.A.players.map(function(_,i){return pl('A',i)}),rosterB:S.teams.B.players.map(function(_,i){return pl('B',i)}),
     games:games().map(function(m){var A=pl('A',m.A),B=pl('B',m.B);return {no:m.no,r:m.round,t:m.table,a:A.n,as:A.s,b:B.n,bs:B.s,w:m.winner||'',g:m.grp||''}}),
@@ -809,7 +812,7 @@ function historyView(){
     '</div></div><p class="hint">승률은 실제 치른 경기만으로 계산합니다(부전승 제외). 핸디는 가장 최근 교류전 기준입니다.</p></section>';
   /* events */
   h+='<h3 class="round">교류전 기록</h3><div class="evs">'+HIST.map(function(r){var o=outcome(r);
-    return '<details class="ev" data-id="'+esc(r.id)+'"'+(openEv[r.id]?' open':'')+'><summary><span class="evd">'+esc(fmtDate(r.date))+'</span><span class="evt">'+esc(r.teamA)+' vs '+esc(r.teamB)+'</span><span class="evs2"><b>'+r.a+' : '+r.b+'</b><i class="res '+o.k+'">'+o.l+'</i></span></summary>'+
+    return '<details class="ev" data-id="'+esc(r.id)+'"'+(openEv[r.id]?' open':'')+'><summary><span class="evd">'+esc(recWhen(r))+'</span><span class="evt">'+esc(r.teamA)+' vs '+esc(r.teamB)+'</span><span class="evs2"><b>'+r.a+' : '+r.b+'</b><i class="res '+o.k+'">'+o.l+'</i></span></summary>'+
       '<div class="evb"><div class="meta"><span>'+(MODE[r.mode]||'')+' 매칭</span>'+(r.mode==='rank'?'<span>경계 '+r.cut+'점</span>':'')+'<span>'+r.total+'경기 · 입력 '+r.done+'</span>'+(r.ba||r.bb?'<span>부전승 '+r.ba+' : '+r.bb+'</span>':'')+'</div>'+
       (r.hasG?'<div class="meta"><span>'+(r.cut+1)+'점 이상 <b>'+r.hiA+' : '+r.hiB+'</b></span><span>'+r.cut+'점 이하 <b>'+r.loA+' : '+r.loB+'</b></span></div>':'')+
       '<div class="glist">'+(r.games||[]).map(function(g){return '<div class="gl"><span class="gn">'+g.no+'</span><span class="'+(g.w==='A'?'gw':g.w?'gx':'')+'">'+esc(g.a)+' <small>'+g.as+'</small></span><span class="gv">vs</span><span class="'+(g.w==='B'?'gw':g.w?'gx':'')+'">'+esc(g.b)+' <small>'+g.bs+'</small></span></div>'}).join('')+'</div>'+
@@ -844,7 +847,8 @@ function histStats(recs){
   return {opp:opp,mem:mem,names:names};
 }
 function pct(m){var g=m.w+m.l;return g?Math.round(m.w/g*100)+'%':'-'}
-function evTitle(r){var o=outcome(r);return fmtDate(r.date)+'  '+r.teamA+' vs '+r.teamB+'  '+r.a+' : '+r.b+' ('+o.l+')'}
+function recWhen(r){var t=fmtTime(r.time);return fmtDate(r.date)+(t?' '+t:'')} /* 예전 기록(시간 없음)은 날짜만 */
+function evTitle(r){var o=outcome(r);return recWhen(r)+'  '+r.teamA+' vs '+r.teamB+'  '+r.a+' : '+r.b+' ('+o.l+')'}
 function evMeta(r){var a=[(MODE[r.mode]||'')+' 매칭'];if(r.mode==='rank')a.push('그룹 경계 '+r.cut+'점');a.push(r.total+'경기 (입력 '+r.done+')');if(r.ba||r.bb)a.push('부전승 '+r.ba+' : '+r.bb);
   if(r.hasG)a.push((r.cut+1)+'점 이상 '+r.hiA+' : '+r.hiB+' / '+r.cut+'점 이하 '+r.loA+' : '+r.loB);return a.join(' · ')}
 function gameRows(r){return (r.games||[]).map(function(g){return [g.no+'경기',String(g.t)+(g.r>1?' ('+g.r+'라운드)':''),g.a,String(g.as),g.b,String(g.bs),g.w==='A'?g.a:g.w==='B'?g.b:'-']})}
@@ -906,7 +910,7 @@ function pdfBlocks(recs,full){
     B.push('<h2 style="margin-bottom:0">교류전 기록</h2>');
   }
   recs.forEach(function(r){var o=outcome(r);
-    B.push('<div class="rp-ev"><h3>'+esc(fmtDate(r.date))+' <span>'+esc(r.teamA)+' vs '+esc(r.teamB)+'</span><b>'+r.a+' : '+r.b+'</b><i class="'+o.k+'">'+o.l+'</i></h3><p class="rp-m">'+esc(evMeta(r))+'</p>'+
+    B.push('<div class="rp-ev"><h3>'+esc(recWhen(r))+' <span>'+esc(r.teamA)+' vs '+esc(r.teamB)+'</span><b>'+r.a+' : '+r.b+'</b><i class="'+o.k+'">'+o.l+'</i></h3><p class="rp-m">'+esc(evMeta(r))+'</p>'+
       tbl(GH,gameRows(r),'games')+((r.byes||[]).length?'<p class="rp-m">부전승: '+esc(byeText(r))+'</p>':'')+'</div>')});
   return B;
 }
@@ -1003,7 +1007,7 @@ var act={
     VIEW='main';S.step=2;mpOpen=true;S.date=today();render(true);var d=$('#mp');if(d)d.scrollIntoView({block:'start'});
     toast(fmtDate(r.date)+' 출전자 '+cnt('A')+'명을 불러왔습니다')},
   delHist:function(b){var id=b.dataset.id,r=HIST.find(function(x){return x.id===id});if(!r)return;
-    modal({title:'이 기록을 삭제할까요?',html:'<p>'+esc(fmtDate(r.date))+' '+esc(r.teamA)+' vs '+esc(r.teamB)+' ('+r.a+' : '+r.b+') 기록을 지웁니다. 되돌릴 수 없습니다.</p>',ok:'삭제',danger:true,onOk:function(){
+    modal({title:'이 기록을 삭제할까요?',html:'<p>'+esc(recWhen(r))+' '+esc(r.teamA)+' vs '+esc(r.teamB)+' ('+r.a+' : '+r.b+') 기록을 지웁니다. 되돌릴 수 없습니다.</p>',ok:'삭제',danger:true,onOk:function(){
       function after(){if(S.savedId===id){S.savedId=null;save()}render();toast('기록을 삭제했습니다')}
       if(DB)DB.collection('events').doc(id).delete().then(after,function(){toast('삭제하지 못했습니다. 잠시 후 다시 시도해 주세요')});
       else{var a=localHist().filter(function(x){return x.id!==id});setLocalHist(a);HIST=sortHist(a);after()}}})},
